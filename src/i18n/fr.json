@@ -1,0 +1,16 @@
+{
+  "tabs": {
+    "today": "Aujourd'hui",
+    "journal": "Journal",
+    "library": "Bibliothèque",
+    "progress": "Progression",
+    "profile": "Profil"
+  },
+  "common": {
+    "kcal": "kcal",
+    "close": "Fermer"
+  },
+  "errorBoundary": {
+    "genericError": "Une erreur est survenue."
+  }
+}
