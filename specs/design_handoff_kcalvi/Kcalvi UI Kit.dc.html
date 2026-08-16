@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"><style>body{margin:0;background:#EDE8DF;font-family:Manrope,system-ui,sans-serif}a{color:#1C86C4}a:hover{color:#146394}</style></helmet>
+
+<div style="max-width:1180px;margin:0 auto;padding:48px 40px 90px;display:flex;flex-direction:column;gap:44px">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:30px;border-bottom:1px solid #DDD5C7;padding-bottom:22px">
+    <div>
+      <div style="font:600 11px Manrope;letter-spacing:1.8px;text-transform:uppercase;color:#8A9AA5">UI Kit · React Native + styled-components</div>
+      <div style="font:800 40px Manrope;color:#17303D;letter-spacing:-1.2px;margin-top:8px">Kcalvi Design System</div>
+      <div style="font:600 14px Manrope;color:#6E7C86;margin-top:8px;max-width:560px;line-height:1.55">Tokens et composants de <code style="font:600 13px ui-monospace,Menlo,monospace;color:#C4643C">src/ui/</code>. Chaque bloc porte le nom du composant à créer et ses props. Valeurs en px, à reprendre telles quelles dans le thème.</div>
+    </div>
+    <div style="display:flex;gap:10px;flex:none">
+      <div style="background:#17303D;color:#fff;border-radius:16px;padding:14px 18px"><div style="font:600 10.5px Manrope;letter-spacing:1.1px;text-transform:uppercase;color:#8FB4C7">Police</div><div style="font:800 17px Manrope;margin-top:4px">Manrope</div></div>
+      <div style="background:#fff;border-radius:16px;padding:14px 18px;box-shadow:0 1px 8px rgba(23,48,61,.05)"><div style="font:600 10.5px Manrope;letter-spacing:1.1px;text-transform:uppercase;color:#8A9AA5">Cible</div><div style="font:800 17px Manrope;color:#17303D;margin-top:4px">iOS 18+</div></div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:800 20px Manrope;color:#17303D">1 · Couleurs — <code style="font:600 14px ui-monospace,Menlo,monospace;color:#8A9AA5">theme.colors</code></div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px">
+      <sc-for list="{{ colors }}" as="c" hint-placeholder-count="18">
+        <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 8px rgba(23,48,61,.05)">
+          <div style="height:62px;background:{{ c.hex }};border-bottom:1px solid rgba(0,0,0,.06)"></div>
+          <div style="padding:10px 12px 12px"><div style="font:700 12px ui-monospace,Menlo,monospace;color:#17303D">{{ c.token }}</div><div style="font:600 11px ui-monospace,Menlo,monospace;color:#A6B2BB;margin-top:3px">{{ c.hex }}</div><div style="font:600 10.5px Manrope;color:#8A9AA5;margin-top:5px;line-height:1.4">{{ c.use }}</div></div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1.35fr 1fr;gap:26px">
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div style="font:800 20px Manrope;color:#17303D">2 · Typographie — <code style="font:600 14px ui-monospace,Menlo,monospace;color:#8A9AA5">theme.typography</code></div>
+      <div style="background:#fff;border-radius:22px;padding:8px 22px;box-shadow:0 1px 8px rgba(23,48,61,.05)">
+        <sc-for list="{{ typeScale }}" as="t" hint-placeholder-count="9">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:22px;padding:15px 0;border-bottom:1px solid #F4EFE7">
+            <div style="font-family:Manrope;color:#17303D;font-size:{{ t.size }};font-weight:{{ t.weight }};letter-spacing:{{ t.tracking }};text-transform:{{ t.transform }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.sample }}</div>
+            <div style="text-align:right;flex:none"><div style="font:700 12px ui-monospace,Menlo,monospace;color:#1C86C4">{{ t.token }}</div><div style="font:600 11px ui-monospace,Menlo,monospace;color:#A6B2BB;margin-top:2px">{{ t.spec }}</div></div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div style="font:800 20px Manrope;color:#17303D">3 · Espacement, rayons, ombres</div>
+      <div style="background:#fff;border-radius:22px;padding:20px 22px;box-shadow:0 1px 8px rgba(23,48,61,.05);display:flex;flex-direction:column;gap:18px">
+        <div>
+          <div style="font:700 11px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8A9AA5;margin-bottom:12px">spacing</div>
+          <div style="display:flex;align-items:flex-end;gap:8px">
+            <sc-for list="{{ spacing }}" as="s" hint-placeholder-count="8">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:{{ s.px }};height:{{ s.px }};background:#DCEAF2;border-radius:3px"></div><span style="font:700 10px ui-monospace,Menlo,monospace;color:#8A9AA5">{{ s.name }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+        <div>
+          <div style="font:700 11px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8A9AA5;margin-bottom:12px">radius</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <sc-for list="{{ radii }}" as="r" hint-placeholder-count="7">
+              <div style="width:56px;height:44px;background:#F1EDE5;border-radius:{{ r.px }};display:flex;align-items:center;justify-content:center;font:700 10px ui-monospace,Menlo,monospace;color:#6E7C86">{{ r.name }}</div>
+            </sc-for>
+          </div>
+        </div>
+        <div>
+          <div style="font:700 11px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8A9AA5;margin-bottom:12px">shadows</div>
+          <div style="display:flex;gap:12px">
+            <div style="flex:1;height:52px;background:#fff;border-radius:16px;box-shadow:0 1px 8px rgba(23,48,61,.05);display:flex;align-items:center;justify-content:center;font:700 10.5px ui-monospace,Menlo,monospace;color:#6E7C86">card</div>
+            <div style="flex:1;height:52px;background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(23,48,61,.05);display:flex;align-items:center;justify-content:center;font:700 10.5px ui-monospace,Menlo,monospace;color:#6E7C86">raised</div>
+            <div style="flex:1;height:52px;background:#fff;border-radius:16px;box-shadow:0 -6px 24px rgba(23,48,61,.16);display:flex;align-items:center;justify-content:center;font:700 10.5px ui-monospace,Menlo,monospace;color:#6E7C86">sheet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:800 20px Manrope;color:#17303D">4 · Composants</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+
+      <div style="background:#fff;border-radius:22px;padding:20px;box-shadow:0 1px 8px rgba(23,48,61,.05);display:flex;flex-direction:column;gap:12px">
+        <div><div style="font:800 15px Manrope;color:#17303D">Button</div><div style="font:600 11px ui-monospace,Menlo,monospace;color:#A6B2BB;margin-top:3px">variant: primary | secondary | ghost · size: lg | md</div></div>
+        <div style="background:#C4643C;color:#fff;border-radius:16px;padding:15px;text-align:center;font:800 15px Manrope">Ajouter au dîner</div>
+        <div style="background:#F1EDE5;color:#17303D;border-radius:16px;padding:15px;text-align:center;font:800 15px Manrope">Dupliquer</div>
+        <div style="background:#4FB0E8;color:#0F2231;border-radius:16px;padding:15px;text-align:center;font:800 15px Manrope">Commencer</div>
+        <div style="text-align:center;font:700 13px Manrope;color:#1C86C4;padding:6px">+ Ajouter un ingrédient</div>
+        <div style="font:600 11px Manrope;color:#8A9AA5;line-height:1.5">primary = terracotta.600 sur fond clair, azure.400 sur fond ink. pressed : −8 % de luminosité. hauteur 50, radius lg.</div>
+      </div>
+
+      <div style="background:#fff;border-radius:22px;padding:20px;box-shadow:0 1px 8px rgba(23,48,61,.05);display:flex;flex-direction:column;gap:12px">
+        <div><div style="font:800 15px Manrope;color:#17303D">Chip</div><div style="font:600 11px ui-monospace,Menlo,monospace;color:#A6B2BB;margin-top:3px">selected: boolean · onPress</div></div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <div style="background:#17303D;color:#fff;border-radius:999px;padding:7px 14px;font:700 12px Manrope">Récents</div>
+          <div style="background:#F1EDE5;color:#6E7C86;border-radius:999px;padding:7px 14px;font:600 12px Manrope">★ Favoris</div>
+          <div style="background:#F1EDE5;color:#6E7C86;border-radius:999px;padding:7px 14px;font:600 12px Manrope">Aliments</div>
+        </div>
+        <div style="font:800 15px Manrope;color:#17303D;margin-top:6px">QuickPortion</div>
+        <div style="display:flex;gap:6px">
+          <div style="background:#F1EDE5;border-radius:12px;padding:11px 13px;font:600 12px Manrope;color:#6E7C86">30 g</div>
+          <div style="background:#E9F1F6;border-radius:12px;padding:11px 13px;font:700 12px Manrope;color:#1C86C4">70 g</div>
+          <div style="background:#F1EDE5;border-radius:12px;padding:11px 13px;font:600 12px Manrope;color:#6E7C86">125 g</div>
+        </div>
+        <div style="font:800 15px Manrope;color:#17303D;margin-top:6px">Toggle</div>
+        <div style="display:flex;gap:12px">
+          <span style="width:44px;height:26px;border-radius:99px;background:#1C86C4;position:relative;display:block"><span style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#fff;display:block"></span></span>
+          <span style="width:44px;height:26px;border-radius:99px;background:#E3DACB;position:relative;display:block"><span style="position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;display:block"></span></span>
+        </div>
+      </div>
+
+      <div style="background:#fff;border-radius:22px;padding:20px;box-shadow:0 1px 8px rgba(23,48,61,.05);display:flex;flex-direction:column;gap:12px">
+        <div><div style="font:800 15px Manrope;color:#17303D">TextField / NumberField</div><div style="font:600 11px ui-monospace,Menlo,monospace;color:#A6B2BB;margin-top:3px">label · unit · error · React Hook Form</div></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font:600 11px Manrope;color:#8A9AA5">Nom</span><div style="background:#fff;border:1px solid #E9E3D8;border-radius:14px;padding:12px 14px;font:700 15px Manrope;color:#17303D">Feta Delhaize</div></div>
+        <div style="display:flex;gap:10px">
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px"><span style="font:600 11px Manrope;color:#8A9AA5">Calories</span><div style="background:#fff;border:1px solid #E9E3D8;border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between"><span style="font:800 17px Manrope;color:#17303D">264</span><span style="font:600 12px Manrope;color:#A6B2BB">kcal</span></div></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px"><span style="font:600 11px Manrope;color:#C4643C">Protéines</span><div style="background:#fff;border:1px solid #C4643C;border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between"><span style="font:800 17px Manrope;color:#17303D">−2</span><span style="font:600 12px Manrope;color:#A6B2BB">g</span></div></div>
+        </div>
+        <div style="font:600 11px Manrope;color:#C4643C">Valeur négative refusée (RM14)</div>
+        <div style="background:#F1EDE5;border-radius:14px;padding:12px 16px;font:500 14px Manrope;color:#9AA5AD">SearchField — Rechercher</div>
+      </div>
+
+      <div style="background:#fff;border-radius:22px;padding:20px;box-shadow:0 1px 8px rgba(23,48,61,.05);display:flex;flex-direction:column;gap:12px">
+        <div><div style="font:800 15px Manrope;color:#17303D">ArcGauge</div><div style="font:600 11px ui-monospace,Menlo,monospace;color:#A6B2BB;margin-top:3px">value · goal · Reanimated, 500 ms ease-out</div></div>
+        <div style="background:#17303D;border-radius:24px;padding:14px 16px;display:flex;flex-direction:column;align-items:center">
+          <div style="position:relative;width:230px;height:112px">
+            <svg width="230" height="112" viewBox="0 0 250 132" style="margin-top:-12px"><path d="M22 122 A103 103 0 0 1 228 122" fill="none" stroke="#264A5C" stroke-width="16" stroke-linecap="round"></path><path d="M22 122 A103 103 0 0 1 228 122" fill="none" stroke="#4FB0E8" stroke-width="16" stroke-linecap="round" stroke-dasharray="252 324"></path></svg>
+            <div style="position:absolute;left:0;right:0;bottom:4px;text-align:center"><div style="font:800 36px Manrope;color:#fff;letter-spacing:-1.3px">1 245</div><div style="font:600 11.5px Manrope;color:#8FB4C7;margin-top:2px">sur 1 600 kcal</div></div>
+          </div>
+        </div>
+        <div style="font:600 11px Manrope;color:#8A9AA5;line-height:1.5">Arc 206×103, trait 16, cap arrondi, longueur totale 324. Piste ink.700, valeur azure.400 ; passe en terracotta.600 au-delà de l'objectif.</div>
+      </div>
+
+      <div style="background:#fff;border-radius:22px;padding:20px;box-shadow:0 1px 8px rgba(23,48,61,.05);display:flex;flex-direction:column;gap:12px">
+        <div><div style="font:800 15px Manrope;color:#17303D">MacroCard · StatTile</div><div style="font:600 11px ui-monospace,Menlo,monospace;color:#A6B2BB;margin-top:3px">label · value · goal · color</div></div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px">
+          <div style="background:#FDFBF7;border-radius:18px;padding:12px 13px;box-shadow:0 1px 8px rgba(23,48,61,.05)"><div style="font:600 10.5px Manrope;color:#8A9AA5">Protéines</div><div style="font:800 16px Manrope;color:#17303D;margin:3px 0 8px">82<span style="font:600 11px Manrope;color:#B3BEC6">/100 g</span></div><div style="height:5px;border-radius:99px;background:#EDE8DF"><div style="width:82%;height:5px;border-radius:99px;background:#1C86C4"></div></div></div>
+          <div style="background:#FDFBF7;border-radius:18px;padding:12px 13px;box-shadow:0 1px 8px rgba(23,48,61,.05)"><div style="font:600 10.5px Manrope;color:#8A9AA5">Glucides</div><div style="font:800 16px Manrope;color:#17303D;margin:3px 0 8px">125<span style="font:600 11px Manrope;color:#B3BEC6">/160 g</span></div><div style="height:5px;border-radius:99px;background:#EDE8DF"><div style="width:78%;height:5px;border-radius:99px;background:#C4643C"></div></div></div>
+          <div style="background:#FDFBF7;border-radius:18px;padding:12px 13px;box-shadow:0 1px 8px rgba(23,48,61,.05)"><div style="font:600 10.5px Manrope;color:#8A9AA5">Lipides</div><div style="font:800 16px Manrope;color:#17303D;margin:3px 0 8px">48<span style="font:600 11px Manrope;color:#B3BEC6">/60 g</span></div><div style="height:5px;border-radius:99px;background:#EDE8DF"><div style="width:80%;height:5px;border-radius:99px;background:#7B8C6A"></div></div></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <div style="flex:1;background:#0F2231;border-radius:14px;padding:10px 12px"><div style="font:600 10.5px Manrope;color:#6E8798">Consommé</div><div style="font:700 15px Manrope;color:#F2F6F8;margin-top:3px">1 245</div></div>
+          <div style="flex:1;background:#0F2231;border-radius:14px;padding:10px 12px"><div style="font:600 10.5px Manrope;color:#6E8798">Brûlé</div><div style="font:700 15px Manrope;color:#E8A88A;margin-top:3px">210</div></div>
+          <div style="flex:1;background:#0F2231;border-radius:14px;padding:10px 12px"><div style="font:600 10.5px Manrope;color:#6E8798">Restant</div><div style="font:700 15px Manrope;color:#4FB0E8;margin-top:3px">565</div></div>
+        </div>
+      </div>
+
+      <div style="background:#fff;border-radius:22px;padding:20px;box-shadow:0 1px 8px rgba(23,48,61,.05);display:flex;flex-direction:column;gap:12px">
+        <div><div style="font:800 15px Manrope;color:#17303D">MealCard · ListRow</div><div style="font:600 11px ui-monospace,Menlo,monospace;color:#A6B2BB;margin-top:3px">state: filled | empty · FlatList item</div></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;background:#FDFBF7;border-radius:16px;padding:11px 16px;box-shadow:0 1px 8px rgba(23,48,61,.05)"><div><div style="font:700 14px Manrope;color:#17303D">Déjeuner</div><div style="font:500 11.5px Manrope;color:#8A9AA5;margin-top:1px">Salade poulet feta</div></div><div style="font:700 14px Manrope;color:#17303D">485<span style="font-size:11px;color:#B3BEC6"> kcal</span></div></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;background:#F1F7FB;border:1px solid #D3E5F0;border-radius:16px;padding:11px 16px"><div><div style="font:700 14px Manrope;color:#17303D">Dîner</div><div style="font:500 11.5px Manrope;color:#8A9AA5;margin-top:1px">Rien encore</div></div><div style="font:700 13px Manrope;color:#1C86C4">+ Ajouter</div></div>
+        <div style="background:#FDFBF7;border-radius:18px;box-shadow:0 1px 8px rgba(23,48,61,.05);overflow:hidden">
+          <div style="display:flex;justify-content:space-between;padding:11px 16px;border-bottom:1px solid #F1EDE5"><span style="font:600 13.5px Manrope;color:#17303D">Skyr nature <span style="color:#A6B2BB;font-weight:500">200 g</span></span><span style="font:700 13px Manrope;color:#6E7C86">128</span></div>
+          <div style="display:flex;justify-content:space-between;padding:11px 16px"><span style="font:600 13.5px Manrope;color:#17303D">Banane <span style="color:#A6B2BB;font-weight:500">1 unité</span></span><span style="font:700 13px Manrope;color:#6E7C86">95</span></div>
+        </div>
+      </div>
+
+      <div style="background:#fff;border-radius:22px;padding:20px;box-shadow:0 1px 8px rgba(23,48,61,.05);display:flex;flex-direction:column;gap:12px">
+        <div><div style="font:800 15px Manrope;color:#17303D">HeroCard (dark)</div><div style="font:600 11px ui-monospace,Menlo,monospace;color:#A6B2BB;margin-top:3px">Le seul bloc sombre par écran</div></div>
+        <div style="background:#17303D;border-radius:22px;padding:15px 18px;display:flex;justify-content:space-between;align-items:center">
+          <div><div style="font:700 10.5px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8FB4C7">Samedi 15 août</div><div style="font:800 22px Manrope;color:#fff;margin-top:4px">1 245 <span style="font:600 12.5px Manrope;color:#8FB4C7">/ 1 600 kcal</span></div></div>
+          <div style="background:rgba(79,176,232,.16);color:#4FB0E8;border-radius:999px;padding:7px 12px;font:700 11.5px Manrope">Dans la cible</div>
+        </div>
+        <div style="font:800 15px Manrope;color:#17303D;margin-top:4px">WeeklyBudgetCard</div>
+        <div style="background:#DCEAF2;border-radius:20px;padding:13px 16px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 10.5px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#4A7E9B">Budget semaine</span><span style="font:700 12.5px Manrope;color:#17303D">3 380 dispo</span></div>
+          <div style="display:flex;gap:4px;margin-top:10px"><div style="flex:1;height:6px;border-radius:99px;background:#1C86C4"></div><div style="flex:1;height:6px;border-radius:99px;background:#1C86C4"></div><div style="flex:1;height:6px;border-radius:99px;background:#1C86C4"></div><div style="flex:1;height:6px;border-radius:99px;background:#C4643C"></div><div style="flex:1;height:6px;border-radius:99px;background:#1C86C4"></div><div style="flex:1;height:6px;border-radius:99px;background:#8FC3E0"></div><div style="flex:1;height:6px;border-radius:99px;background:#C3D8E4"></div></div>
+          <div style="font:600 11.5px Manrope;color:#4A7E9B;margin-top:9px">7 820 / 11 200 kcal</div>
+        </div>
+      </div>
+
+      <div style="background:#fff;border-radius:22px;padding:20px;box-shadow:0 1px 8px rgba(23,48,61,.05);display:flex;flex-direction:column;gap:12px">
+        <div><div style="font:800 15px Manrope;color:#17303D">Charts</div><div style="font:600 11px ui-monospace,Menlo,monospace;color:#A6B2BB;margin-top:3px">react-native-svg · barres = View</div></div>
+        <div style="background:#17303D;border-radius:20px;padding:14px 16px">
+          <svg viewBox="0 0 320 96" style="width:100%;height:86px"><polyline points="6,14 52,22 98,30 144,26 190,48 236,60 282,70 314,76" fill="none" stroke="#4FB0E8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline><line x1="0" y1="88" x2="320" y2="88" stroke="#E8A88A" stroke-width="2" stroke-dasharray="4 5"></line></svg>
+          <div style="font:600 10.5px Manrope;color:#6E8798">WeightChart — ligne azure.400, cible terracotta.300 pointillée</div>
+        </div>
+        <div style="display:flex;gap:9px;align-items:flex-end;height:76px">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:100%;height:48px;background:#1C86C4;border-radius:6px"></div><span style="font:600 10px Manrope;color:#A6B2BB">S31</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:100%;height:60px;background:#C4643C;border-radius:6px"></div><span style="font:600 10px Manrope;color:#A6B2BB">S32</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:100%;height:42px;background:#1C86C4;border-radius:6px"></div><span style="font:600 10px Manrope;color:#A6B2BB">S33</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:100%;height:32px;background:#8FC3E0;border-radius:6px"></div><span style="font:700 10px Manrope;color:#17303D">S34</span></div>
+        </div>
+        <div style="font:600 11px Manrope;color:#8A9AA5">Barre au-delà de l'objectif : terracotta.600. Semaine en cours : azure.300 #8FC3E0.</div>
+      </div>
+
+      <div style="background:#fff;border-radius:22px;padding:20px;box-shadow:0 1px 8px rgba(23,48,61,.05);display:flex;flex-direction:column;gap:12px">
+        <div><div style="font:800 15px Manrope;color:#17303D">QuantitySheet · Toast · TabBar</div><div style="font:600 11px ui-monospace,Menlo,monospace;color:#A6B2BB;margin-top:3px">bottom sheet, radius 30 haut</div></div>
+        <div style="background:#FDFBF7;border-radius:20px 20px 14px 14px;padding:14px 16px;box-shadow:0 -6px 24px rgba(23,48,61,.1);display:flex;flex-direction:column;gap:10px">
+          <div style="width:38px;height:4px;border-radius:99px;background:#E3DACB;align-self:center"></div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline"><div><div style="font:800 16px Manrope;color:#17303D">Mozzarella</div><div style="font:500 11.5px Manrope;color:#8A9AA5">254 kcal / 100 g</div></div><div style="font:800 20px Manrope;color:#1C86C4">178<span style="font:600 11px Manrope;color:#8A9AA5"> kcal</span></div></div>
+          <div style="display:flex;gap:14px;font:600 11.5px Manrope;color:#8A9AA5"><span style="white-space:nowrap">P <span style="color:#17303D;font-weight:800">15,4 g</span></span><span style="white-space:nowrap">G <span style="color:#17303D;font-weight:800">1,1 g</span></span><span style="white-space:nowrap">L <span style="color:#17303D;font-weight:800">13,3 g</span></span></div>
+        </div>
+        <div style="background:#17303D;color:#fff;border-radius:16px;padding:12px 16px;font:700 12.5px Manrope;display:flex;justify-content:space-between"><span>Mozzarella · 178 kcal ajoutées</span><span style="color:#4FB0E8">✓</span></div>
+        <div style="border-top:1px solid #EDE8DF;padding-top:11px;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center"><div style="font:700 11px Manrope;color:#1C86C4">Aujourd'hui</div><div style="font:600 11px Manrope;color:#A6B2BB">Journal</div><div style="font:600 11px Manrope;color:#A6B2BB">Bibliothèque</div><div style="font:600 11px Manrope;color:#A6B2BB">Progression</div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:800 20px Manrope;color:#17303D">5 · Règles d'usage</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+      <sc-for list="{{ rules }}" as="r" hint-placeholder-count="6">
+        <div style="background:#fff;border-radius:20px;padding:18px;box-shadow:0 1px 8px rgba(23,48,61,.05)"><div style="font:800 14px Manrope;color:#17303D">{{ r.title }}</div><div style="font:600 12.5px Manrope;color:#6E7C86;margin-top:7px;line-height:1.55">{{ r.text }}</div></div>
+      </sc-for>
+    </div>
+  </div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180,&quot;height&quot;:1400}}">
+class Component extends DCLogic {
+  renderVals(){
+    return {
+      colors:[
+        {token:'ink.900',hex:'#0F2231',use:'Fond onboarding, tuiles internes'},
+        {token:'ink.800',hex:'#17303D',use:'HeroCard, texte principal'},
+        {token:'ink.700',hex:'#264A5C',use:'Pistes de jauge sur fond sombre'},
+        {token:'azure.600',hex:'#1C86C4',use:'Accent primaire, liens, protéines'},
+        {token:'azure.400',hex:'#4FB0E8',use:'Accent sur fond sombre'},
+        {token:'azure.300',hex:'#8FC3E0',use:'Jour ou semaine en cours'},
+        {token:'azure.100',hex:'#DCEAF2',use:'Carte budget semaine'},
+        {token:'azure.050',hex:'#F1F7FB',use:'Repas vide, encadré info'},
+        {token:'terracotta.600',hex:'#C4643C',use:'Action principale, dépassement'},
+        {token:'terracotta.300',hex:'#E8A88A',use:'Calories brûlées, cible poids'},
+        {token:'terracotta.100',hex:'#F6E5DC',use:'Carte activité, série'},
+        {token:'olive.500',hex:'#7B8C6A',use:'Lipides'},
+        {token:'sand.100',hex:'#FDFBF7',use:'Fond d\'écran'},
+        {token:'sand.200',hex:'#F4EFE7',use:'Éléments désactivés'},
+        {token:'sand.300',hex:'#F1EDE5',use:'Bouton secondaire, champ'},
+        {token:'border.default',hex:'#E9E3D8',use:'Bordure de champ'},
+        {token:'text.secondary',hex:'#6E7C86',use:'Texte courant secondaire'},
+        {token:'text.tertiary',hex:'#8A9AA5',use:'Libellés, légendes'}
+      ],
+      typeScale:[
+        {token:'display',spec:'40 / 800 / −1.4',size:'40px',weight:800,tracking:'-1.4px',transform:'none',sample:'1 245'},
+        {token:'stat',spec:'32 / 800 / −1',size:'32px',weight:800,tracking:'-1px',transform:'none',sample:'77,8 kg'},
+        {token:'h1',spec:'24 / 800 / −0.4',size:'24px',weight:800,tracking:'-.4px',transform:'none',sample:'Bonjour François'},
+        {token:'h2',spec:'18 / 800',size:'18px',weight:800,tracking:'0',transform:'none',sample:'Salade poulet feta'},
+        {token:'title',spec:'16 / 800',size:'16px',weight:800,tracking:'0',transform:'none',sample:'Ajouter au dîner'},
+        {token:'body',spec:'14 / 600',size:'14px',weight:600,tracking:'0',transform:'none',sample:'Skyr nature 200 g'},
+        {token:'bodySm',spec:'13.5 / 600',size:'13.5px',weight:600,tracking:'0',transform:'none',sample:'Marche 45 min'},
+        {token:'caption',spec:'12 / 600',size:'12px',weight:600,tracking:'0',transform:'none',sample:'254 kcal / 100 g'},
+        {token:'overline',spec:'11 / 700 / +1.2 / caps',size:'11px',weight:700,tracking:'1.2px',transform:'uppercase',sample:'Budget semaine'}
+      ],
+      spacing:[{name:'1',px:'4px'},{name:'2',px:'8px'},{name:'3',px:'12px'},{name:'4',px:'14px'},{name:'5',px:'16px'},{name:'6',px:'18px'},{name:'7',px:'22px'},{name:'8',px:'26px'}],
+      radii:[{name:'sm 12',px:'12px'},{name:'md 14',px:'14px'},{name:'lg 16',px:'16px'},{name:'xl 18',px:'18px'},{name:'2xl 20',px:'20px'},{name:'3xl 24',px:'24px'},{name:'pill',px:'999px'}],
+      rules:[
+        {title:'Un seul bloc sombre par écran',text:'HeroCard en ink.800 porte la donnée principale. Le reste reste en cartes blanches sur sand.100, sinon l\'écran devient lourd.'},
+        {title:'Terracotta = action ou dépassement',text:'Jamais décoratif. Bouton principal, calories brûlées, jour au-dessus de l\'objectif, série en cours.'},
+        {title:'Azure = progression',text:'Anneau, barres de macros, budget semaine, liens. azure.400 dès que le fond est ink.'},
+        {title:'Nombres formatés côté natif',text:'Intl.NumberFormat("fr-BE") pour kcal, grammes et poids. Espace comme séparateur de milliers, virgule décimale.'},
+        {title:'Une carte, un rôle',text:'Padding 13–16, radius 16–24, ombre card. Les listes utilisent une seule carte avec séparateurs 1px #F1EDE5, pas une carte par ligne.'},
+        {title:'Cibles tactiles ≥ 44',text:'Lignes de liste 44 min, boutons 50, toggles 44×26. Les chips gardent 7px vertical mais 30px de hauteur effective.'}
+      ]
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"><style>body{margin:0;background:#EDE8DF;font-family:Manrope,system-ui,sans-serif}a{color:#1C86C4}a:hover{color:#146394}*{-webkit-tap-highlight-color:transparent}.kv-scroll{overflow-y:auto;scrollbar-width:none}.kv-scroll::-webkit-scrollbar{display:none}</style></helmet>
+
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;gap:34px;padding:40px 30px;background:#EDE8DF">
+<div style="width:390px;height:844px;border-radius:46px;background:#FDFBF7;overflow:hidden;position:relative;box-shadow:0 0 0 10px #14202a,0 22px 50px rgba(0,0,0,.28);display:flex;flex-direction:column;flex:none" data-screen-label="Prototype Kcalvi">
+
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 30px 4px;font:600 13px Manrope;color:#17303D;flex-shrink:0"><span>9:41</span><span style="width:16px;height:9px;border:1.4px solid #17303D;border-radius:2px;display:block"></span></div>
+
+  <sc-if value="{{ isToday }}" hint-placeholder-val="{{ true }}">
+  <div class="kv-scroll" style="flex:1;padding:14px 22px 4px;display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0">
+      <div><div style="font:800 24px Manrope;color:#17303D;letter-spacing:-.4px">Bonjour François</div><div style="font:600 11px Manrope;letter-spacing:1.4px;text-transform:uppercase;color:#8A9AA5;margin-top:3px">Samedi 15 août</div></div>
+      <div style="background:#F6E5DC;color:#C4643C;border-radius:999px;padding:6px 11px;font:700 12px Manrope">5 jours</div>
+    </div>
+    <div style="background:#17303D;border-radius:28px;padding:14px 18px 13px;display:flex;flex-direction:column;align-items:center;flex-shrink:0">
+      <div style="position:relative;width:250px;height:118px">
+        <svg width="250" height="118" viewBox="0 0 250 132" style="margin-top:-14px"><path d="M22 122 A103 103 0 0 1 228 122" fill="none" stroke="#264A5C" stroke-width="16" stroke-linecap="round"></path><path d="M22 122 A103 103 0 0 1 228 122" fill="none" stroke="#4FB0E8" stroke-width="16" stroke-linecap="round" stroke-dasharray="{{ arcDash }}" style="transition:stroke-dasharray .5s cubic-bezier(.4,0,.2,1)"></path></svg>
+        <div style="position:absolute;left:0;right:0;bottom:6px;display:flex;flex-direction:column;align-items:center">
+          <div style="font:800 40px Manrope;color:#fff;letter-spacing:-1.4px;line-height:1">{{ consumedLabel }}</div>
+          <div style="font:600 12px Manrope;color:#8FB4C7;margin-top:3px">sur {{ goalLabel }} kcal</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;width:100%;margin-top:10px">
+        <div style="flex:1;background:#0F2231;border-radius:14px;padding:10px 12px"><div style="font:600 10.5px Manrope;color:#6E8798">Consommé</div><div style="font:700 15px Manrope;color:#F2F6F8;margin-top:3px">{{ consumedLabel }}</div></div>
+        <div onClick="{{ goActivity }}" style="flex:1;background:#0F2231;border-radius:14px;padding:10px 12px;cursor:pointer" style-hover="background:#16384A"><div style="font:600 10.5px Manrope;color:#6E8798">Brûlé</div><div style="font:700 15px Manrope;color:#E8A88A;margin-top:3px">{{ burnedLabel }}</div></div>
+        <div style="flex:1;background:#0F2231;border-radius:14px;padding:10px 12px"><div style="font:600 10.5px Manrope;color:#6E8798">Restant</div><div style="font:700 15px Manrope;color:#4FB0E8;margin-top:3px">{{ remainingLabel }}</div></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:9px;flex-shrink:0">
+      <sc-for list="{{ macros }}" as="m" hint-placeholder-count="3">
+        <div style="background:#fff;border-radius:18px;padding:12px 13px;box-shadow:0 1px 8px rgba(23,48,61,.05)"><div style="font:600 10.5px Manrope;color:#8A9AA5">{{ m.name }}</div><div style="font:800 16px Manrope;color:#17303D;margin:3px 0 8px">{{ m.value }}<span style="font:600 11px Manrope;color:#B3BEC6">/{{ m.goal }} g</span></div><div style="height:5px;border-radius:99px;background:#EDE8DF"><div style="height:5px;border-radius:99px;width:{{ m.width }};background:{{ m.color }};transition:width .45s ease"></div></div></div>
+      </sc-for>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:0 4px;flex-shrink:0"><span style="font:700 11px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8A9AA5">Repas</span><span onClick="{{ goJournal }}" style="font:600 12px Manrope;color:#1C86C4;cursor:pointer">Tout voir</span></div>
+    <div style="display:flex;flex-direction:column;gap:7px;flex-shrink:0">
+      <sc-for list="{{ mealCards }}" as="meal" hint-placeholder-count="4">
+        <div onClick="{{ meal.onTap }}" style="display:flex;justify-content:space-between;align-items:center;background:{{ meal.bg }};border:{{ meal.border }};border-radius:16px;padding:11px 16px;box-shadow:{{ meal.shadow }};cursor:pointer" style-hover="transform:translateY(-1px)">
+          <div><div style="font:700 14px Manrope;color:#17303D">{{ meal.label }}</div><div style="font:500 11.5px Manrope;color:#8A9AA5;margin-top:1px">{{ meal.sub }}</div></div>
+          <div style="font:700 14px Manrope;color:{{ meal.valueColor }}">{{ meal.value }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <sc-if value="{{ showWeekly }}" hint-placeholder-val="{{ true }}">
+    <div onClick="{{ goWeek }}" style="background:#DCEAF2;border-radius:20px;padding:13px 16px;flex-shrink:0;cursor:pointer;margin-bottom:4px" style-hover="background:#D2E4EE">
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 10.5px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#4A7E9B">Budget semaine</span><span style="font:700 12.5px Manrope;color:#17303D">{{ weekLeftLabel }} dispo</span></div>
+      <div style="display:flex;gap:4px;margin-top:10px">
+        <sc-for list="{{ weekBars }}" as="b" hint-placeholder-count="7"><div style="flex:1;height:6px;border-radius:99px;background:{{ b.color }}"></div></sc-for>
+      </div>
+      <div style="font:600 11.5px Manrope;color:#4A7E9B;margin-top:9px">{{ weekUsedLabel }} / {{ weekBudgetLabel }} kcal</div>
+    </div>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isAdd }}" hint-placeholder-val="{{ false }}">
+  <div class="kv-scroll" style="flex:1;padding:14px 22px 4px;display:flex;flex-direction:column;gap:11px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0"><span onClick="{{ goBack }}" style="font:600 13px Manrope;color:#1C86C4;cursor:pointer">Annuler</span><span style="font:800 16px Manrope;color:#17303D">Ajouter au {{ addMealLabel }}</span><span style="font:600 13px Manrope;color:#1C86C4;cursor:pointer">Créer</span></div>
+    <input value="{{ query }}" onChange="{{ onQuery }}" placeholder="Rechercher un aliment ou une recette" style="background:#F1EDE5;border:none;outline:none;border-radius:14px;padding:12px 16px;font:600 14px Manrope;color:#17303D;flex-shrink:0" />
+    <div style="display:flex;gap:7px;flex-shrink:0">
+      <sc-for list="{{ addFilters }}" as="f" hint-placeholder-count="4"><div onClick="{{ f.onTap }}" style="background:{{ f.bg }};color:{{ f.color }};border-radius:999px;padding:7px 14px;font:700 12px Manrope;cursor:pointer">{{ f.label }}</div></sc-for>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:7px;flex-shrink:0">
+      <sc-for list="{{ addResults }}" as="item" hint-placeholder-count="6">
+        <div onClick="{{ item.onTap }}" style="display:flex;justify-content:space-between;align-items:center;background:#fff;border-radius:16px;padding:12px 16px;box-shadow:0 1px 8px rgba(23,48,61,.05);cursor:pointer" style-hover="transform:translateY(-1px)">
+          <div><div style="font:700 14px Manrope;color:#17303D">{{ item.name }}</div><div style="font:500 11.5px Manrope;color:#8A9AA5;margin-top:1px">{{ item.sub }}</div></div>
+          <div style="width:28px;height:28px;border-radius:50%;background:#E9F1F6;color:#1C86C4;display:flex;align-items:center;justify-content:center;font:400 18px Manrope">+</div>
+        </div>
+      </sc-for>
+    </div>
+    <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center;padding:26px 10px;font:600 13px Manrope;color:#8A9AA5;line-height:1.6">Aucun résultat.<br><span style="color:#1C86C4">Créer cet aliment</span></div>
+    </sc-if>
+    <div onClick="{{ copyYesterday }}" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:1.5px dashed #DCD5C8;border-radius:16px;flex-shrink:0;cursor:pointer"><span style="font:600 13px Manrope;color:#6E7C86">Copier le dîner d'hier</span><span style="font:700 13px Manrope;color:#1C86C4">620 kcal</span></div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isJournal }}" hint-placeholder-val="{{ false }}">
+  <div class="kv-scroll" style="flex:1;padding:14px 22px 4px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0"><span style="font:800 24px Manrope;color:#17303D;letter-spacing:-.4px">Journal</span><span style="font:600 12.5px Manrope;color:#1C86C4">Août 2026</span></div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;flex-shrink:0">
+      <sc-for list="{{ journalDays }}" as="d" hint-placeholder-count="7">
+        <div onClick="{{ d.onTap }}" style="text-align:center;cursor:pointer"><div style="font:700 10.5px Manrope;color:{{ d.labelColor }};margin-bottom:5px">{{ d.dow }}</div><div style="background:{{ d.bg }};border-radius:14px;padding:8px 0;box-shadow:{{ d.shadow }}"><div style="font:800 13px Manrope;color:{{ d.numColor }}">{{ d.num }}</div><div style="width:5px;height:5px;border-radius:50%;background:{{ d.dot }};margin:5px auto 0"></div></div></div>
+      </sc-for>
+    </div>
+    <div style="background:#17303D;border-radius:22px;padding:15px 18px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+      <div><div style="font:700 10.5px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8FB4C7">{{ selectedDayLabel }}</div><div style="font:800 22px Manrope;color:#fff;margin-top:4px">{{ selectedDayKcal }} <span style="font:600 12.5px Manrope;color:#8FB4C7">/ {{ goalLabel }} kcal</span></div></div>
+      <div style="background:rgba(79,176,232,.16);color:#4FB0E8;border-radius:999px;padding:7px 12px;font:700 11.5px Manrope">{{ selectedDayStatus }}</div>
+    </div>
+    <sc-for list="{{ journalSections }}" as="sec" hint-placeholder-count="3">
+      <div style="flex-shrink:0">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px"><span style="font:700 11px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8A9AA5">{{ sec.label }}</span><span style="font:700 12.5px Manrope;color:{{ sec.totalColor }}">{{ sec.total }}</span></div>
+        <div style="background:#fff;border-radius:18px;box-shadow:0 1px 8px rgba(23,48,61,.05);overflow:hidden">
+          <sc-for list="{{ sec.items }}" as="it" hint-placeholder-count="2">
+            <div onClick="{{ it.onRemove }}" style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:{{ it.border }};cursor:pointer" style-hover="background:#FBF7F0"><span style="font:600 13.5px Manrope;color:#17303D">{{ it.name }} <span style="color:#A6B2BB;font-weight:500">{{ it.qty }}</span></span><span style="font:700 13px Manrope;color:#6E7C86">{{ it.kcal }}</span></div>
+          </sc-for>
+          <sc-if value="{{ sec.empty }}" hint-placeholder-val="{{ false }}"><div onClick="{{ sec.onAdd }}" style="padding:12px 16px;font:700 13px Manrope;color:#1C86C4;cursor:pointer">+ Ajouter</div></sc-if>
+        </div>
+      </div>
+    </sc-for>
+    <div style="font:500 11.5px Manrope;color:#A6B2BB;text-align:center;flex-shrink:0;padding-bottom:4px">Touche une ligne pour la retirer</div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isLibrary }}" hint-placeholder-val="{{ false }}">
+  <div class="kv-scroll" style="flex:1;padding:14px 22px 4px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0"><span style="font:800 24px Manrope;color:#17303D;letter-spacing:-.4px">Bibliothèque</span><span style="width:30px;height:30px;border-radius:50%;background:#17303D;color:#fff;display:flex;align-items:center;justify-content:center;font:400 18px Manrope">+</span></div>
+    <input value="{{ libQuery }}" onChange="{{ onLibQuery }}" placeholder="Rechercher" style="background:#F1EDE5;border:none;outline:none;border-radius:14px;padding:12px 16px;font:600 14px Manrope;color:#17303D;flex-shrink:0" />
+    <div style="background:#17303D;border-radius:22px;padding:15px 18px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+      <div><div style="font:800 24px Manrope;color:#fff">{{ libFoodCount }}</div><div style="font:600 11.5px Manrope;color:#8FB4C7;margin-top:2px">aliments</div></div>
+      <div style="width:1px;height:34px;background:#264A5C"></div>
+      <div><div style="font:800 24px Manrope;color:#E8A88A">{{ libRecipeCount }}</div><div style="font:600 11.5px Manrope;color:#8FB4C7;margin-top:2px">recettes</div></div>
+      <div style="width:1px;height:34px;background:#264A5C"></div>
+      <div><div style="font:800 24px Manrope;color:#4FB0E8">{{ libFavCount }}</div><div style="font:600 11.5px Manrope;color:#8FB4C7;margin-top:2px">favoris</div></div>
+    </div>
+    <div style="font:700 11px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8A9AA5;flex-shrink:0">Recettes</div>
+    <div style="display:flex;flex-direction:column;gap:7px;flex-shrink:0">
+      <sc-for list="{{ libRecipes }}" as="r" hint-placeholder-count="3">
+        <div onClick="{{ r.onTap }}" style="display:flex;justify-content:space-between;align-items:center;background:#fff;border-radius:16px;padding:12px 16px;box-shadow:0 1px 8px rgba(23,48,61,.05);cursor:pointer" style-hover="transform:translateY(-1px)"><div><div style="font:700 14px Manrope;color:#17303D">{{ r.name }}</div><div style="font:500 11.5px Manrope;color:#8A9AA5;margin-top:1px">{{ r.sub }}</div></div><span style="font:400 18px Manrope;color:#C0C9CF">›</span></div>
+      </sc-for>
+    </div>
+    <div style="font:700 11px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8A9AA5;flex-shrink:0">Aliments</div>
+    <div style="display:flex;flex-direction:column;gap:7px;flex-shrink:0;padding-bottom:4px">
+      <sc-for list="{{ libFoods }}" as="f" hint-placeholder-count="5">
+        <div style="display:flex;justify-content:space-between;align-items:center;background:#fff;border-radius:16px;padding:12px 16px;box-shadow:0 1px 8px rgba(23,48,61,.05)"><div><div style="font:700 14px Manrope;color:#17303D">{{ f.name }}</div><div style="font:500 11.5px Manrope;color:#8A9AA5;margin-top:1px">{{ f.sub }}</div></div><span onClick="{{ f.onFav }}" style="font:600 17px Manrope;color:{{ f.favColor }};cursor:pointer;padding:0 4px">★</span></div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isRecipe }}" hint-placeholder-val="{{ false }}">
+  <div class="kv-scroll" style="flex:1;padding:14px 22px 4px;display:flex;flex-direction:column;gap:11px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0"><span onClick="{{ goBack }}" style="font:600 13px Manrope;color:#1C86C4;cursor:pointer">‹ Retour</span><span style="font:600 13px Manrope;color:#1C86C4">Modifier</span></div>
+    <div style="flex-shrink:0"><div style="font:800 25px Manrope;color:#17303D;letter-spacing:-.5px">{{ recipe.name }}</div><div style="font:600 12.5px Manrope;color:#8A9AA5;margin-top:4px">{{ recipe.servings }} portions</div></div>
+    <div style="background:#17303D;border-radius:24px;padding:16px 18px;flex-shrink:0;display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font:700 10.5px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8FB4C7">Par portion</div><div style="font:800 34px Manrope;color:#fff;margin-top:4px;letter-spacing:-1px">{{ recipe.kcal }} <span style="font:600 13px Manrope;color:#8FB4C7">kcal</span></div></div>
+      <div style="text-align:right;font:600 11.5px Manrope;color:#8FB4C7;line-height:1.7">P {{ recipe.p }} g<br>G {{ recipe.g }} g<br>L {{ recipe.l }} g</div>
+    </div>
+    <div style="font:700 11px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8A9AA5;flex-shrink:0">Ingrédients</div>
+    <div style="background:#fff;border-radius:20px;box-shadow:0 1px 8px rgba(23,48,61,.05);overflow:hidden;flex-shrink:0">
+      <sc-for list="{{ recipeIngredients }}" as="ing" hint-placeholder-count="5">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:{{ ing.border }}"><span style="font:600 14px Manrope;color:#17303D">{{ ing.name }} <span style="color:#A6B2BB;font-weight:500">{{ ing.qty }}</span></span><span style="font:700 13.5px Manrope;color:#6E7C86">{{ ing.kcal }}</span></div>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:10px;flex-shrink:0;padding-bottom:6px">
+      <div style="flex:1;background:#F1EDE5;color:#17303D;border-radius:16px;padding:15px;text-align:center;font:800 15px Manrope;cursor:pointer">Dupliquer</div>
+      <div onClick="{{ addRecipeToMeal }}" style="flex:2;background:#C4643C;color:#fff;border-radius:16px;padding:15px;text-align:center;font:800 15px Manrope;cursor:pointer" style-hover="background:#B0562F">Ajouter au dîner</div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isProgress }}" hint-placeholder-val="{{ false }}">
+  <div class="kv-scroll" style="flex:1;padding:14px 22px 4px;display:flex;flex-direction:column;gap:11px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0"><span style="font:800 24px Manrope;color:#17303D;letter-spacing:-.4px">Progression</span>
+      <div style="display:flex;gap:6px">
+        <sc-for list="{{ ranges }}" as="r" hint-placeholder-count="2"><span onClick="{{ r.onTap }}" style="background:{{ r.bg }};color:{{ r.color }};border-radius:999px;padding:6px 12px;font:700 11.5px Manrope;cursor:pointer">{{ r.label }}</span></sc-for>
+      </div>
+    </div>
+    <div style="background:#17303D;border-radius:24px;padding:16px 18px;flex-shrink:0">
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <div><div style="font:700 10.5px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8FB4C7">Poids</div><div style="font:800 32px Manrope;color:#fff;margin-top:3px;letter-spacing:-1px">{{ weightLabel }} <span style="font:600 13px Manrope;color:#8FB4C7">kg</span></div></div>
+        <div style="text-align:right"><div style="font:700 15px Manrope;color:#4FB0E8">{{ weightDeltaLabel }}</div><div style="font:600 11.5px Manrope;color:#8FB4C7;margin-top:2px">depuis {{ weightStartLabel }}</div></div>
+      </div>
+      <svg viewBox="0 0 320 104" style="width:100%;height:104px;margin-top:8px"><polyline points="{{ weightPoints }}" fill="none" stroke="#4FB0E8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline><line x1="0" y1="94" x2="320" y2="94" stroke="#E8A88A" stroke-width="2" stroke-dasharray="4 5"></line></svg>
+      <div style="display:flex;justify-content:space-between;font:600 11px Manrope;color:#6E8798"><span>{{ rangeStartLabel }}</span><span style="color:#E8A88A">cible 74,0 kg</span><span>15 août</span></div>
+    </div>
+    <div style="display:flex;gap:9px;flex-shrink:0">
+      <div style="flex:1;background:#DCEAF2;border-radius:20px;padding:13px 15px"><div style="font:600 11px Manrope;color:#4A7E9B">Moyenne / jour</div><div style="font:800 21px Manrope;color:#17303D;margin-top:3px">{{ avgKcal }}</div><div style="font:600 11px Manrope;color:#4A7E9B;margin-top:1px">kcal · 7 jours</div></div>
+      <div onClick="{{ goWeigh }}" style="flex:1;background:#F6E5DC;border-radius:20px;padding:13px 15px;cursor:pointer" style-hover="background:#F0DBD0"><div style="font:600 11px Manrope;color:#A05A38">Pesée</div><div style="font:800 21px Manrope;color:#17303D;margin-top:3px">{{ weightLabel }}</div><div style="font:600 11px Manrope;color:#A05A38;margin-top:1px">mettre à jour</div></div>
+    </div>
+    <div style="background:#fff;border-radius:24px;padding:16px;box-shadow:0 2px 12px rgba(23,48,61,.05);flex-shrink:0">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px"><span style="font:700 11px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8A9AA5">Calories vs objectif</span><span style="font:600 11.5px Manrope;color:#8A9AA5">{{ weekChartLabel }}</span></div>
+      <div style="display:flex;gap:9px;align-items:flex-end;height:92px">
+        <sc-for list="{{ weekChart }}" as="w" hint-placeholder-count="5">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:100%;border-radius:6px;height:{{ w.height }};background:{{ w.color }};transition:height .4s ease"></div><span style="font:600 10px Manrope;color:#A6B2BB">{{ w.label }}</span></div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0"><span style="font:700 11px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8A9AA5">Badges</span><span onClick="{{ goBadges }}" style="font:600 12px Manrope;color:#1C86C4;cursor:pointer">Tout voir</span></div>
+    <div style="display:flex;gap:9px;flex-shrink:0;padding-bottom:6px">
+      <div style="flex:1;background:#fff;border-radius:18px;padding:13px 10px;text-align:center;box-shadow:0 1px 8px rgba(23,48,61,.05)"><div style="font:800 18px Manrope;color:#1C86C4">18</div><div style="font:700 10.5px Manrope;color:#17303D;margin-top:5px">Jours dans la cible</div></div>
+      <div style="flex:1;background:#fff;border-radius:18px;padding:13px 10px;text-align:center;box-shadow:0 1px 8px rgba(23,48,61,.05)"><div style="font:800 18px Manrope;color:#C4643C">3</div><div style="font:700 10.5px Manrope;color:#17303D;margin-top:5px">Semaines maîtrisées</div></div>
+      <div style="flex:1;background:#F4EFE7;border-radius:18px;padding:13px 10px;text-align:center"><div style="font:800 18px Manrope;color:#B3BEC6">5</div><div style="font:700 10.5px Manrope;color:#9AA5AD;margin-top:5px">Série en cours</div></div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isWeigh }}" hint-placeholder-val="{{ false }}">
+  <div class="kv-scroll" style="flex:1;padding:14px 22px 4px;display:flex;flex-direction:column;gap:11px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0"><span onClick="{{ goBack }}" style="font:600 13px Manrope;color:#1C86C4;cursor:pointer">Annuler</span><span style="font:800 16px Manrope;color:#17303D">Pesée</span><span style="font:600 13px Manrope;color:transparent">—</span></div>
+    <div style="flex-shrink:0;text-align:center;padding:8px 0"><div style="font:600 11px Manrope;letter-spacing:1.4px;text-transform:uppercase;color:#8A9AA5">Samedi 15 août</div><div style="display:flex;align-items:baseline;justify-content:center;gap:8px;margin-top:8px"><span style="font:800 60px Manrope;color:#17303D;letter-spacing:-2.5px">{{ draftWeightLabel }}</span><span style="font:600 16px Manrope;color:#8A9AA5">kg</span></div><div style="font:700 13px Manrope;color:#1C86C4;margin-top:4px">{{ draftDeltaLabel }}</div></div>
+    <div style="display:flex;gap:8px;justify-content:center;flex-shrink:0">
+      <sc-for list="{{ weightSteps }}" as="s" hint-placeholder-count="4"><div onClick="{{ s.onTap }}" style="background:#fff;border-radius:14px;padding:11px 15px;font:700 13px Manrope;color:#17303D;box-shadow:0 1px 8px rgba(23,48,61,.05);cursor:pointer" style-hover="background:#F4EFE7">{{ s.label }}</div></sc-for>
+    </div>
+    <div style="background:#17303D;border-radius:24px;padding:16px 18px;flex-shrink:0">
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 10.5px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8FB4C7">Historique</span><span style="font:700 13px Manrope;color:#4FB0E8">{{ weightDeltaLabel }}</span></div>
+      <svg viewBox="0 0 320 96" style="width:100%;height:96px;margin-top:8px"><polyline points="{{ weightPoints }}" fill="none" stroke="#4FB0E8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline><line x1="0" y1="88" x2="320" y2="88" stroke="#E8A88A" stroke-width="2" stroke-dasharray="4 5"></line></svg>
+    </div>
+    <div style="font:700 11px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8A9AA5;flex-shrink:0">Dernières pesées</div>
+    <div style="background:#fff;border-radius:20px;box-shadow:0 1px 8px rgba(23,48,61,.05);overflow:hidden;flex-shrink:0">
+      <sc-for list="{{ weighHistory }}" as="w" hint-placeholder-count="4"><div style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:{{ w.border }}"><span style="font:600 14px Manrope;color:#17303D">{{ w.date }}</span><span style="font:700 13.5px Manrope;color:#6E7C86">{{ w.value }} kg</span></div></sc-for>
+    </div>
+    <div onClick="{{ saveWeight }}" style="background:#C4643C;color:#fff;border-radius:16px;padding:15px;text-align:center;font:800 15px Manrope;flex-shrink:0;cursor:pointer;margin-bottom:6px" style-hover="background:#B0562F">Enregistrer la pesée</div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isWeek }}" hint-placeholder-val="{{ false }}">
+  <div class="kv-scroll" style="flex:1;padding:14px 22px 4px;display:flex;flex-direction:column;gap:11px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0"><span onClick="{{ goBack }}" style="font:600 13px Manrope;color:#1C86C4;cursor:pointer">‹ Retour</span><span style="font:800 16px Manrope;color:#17303D">Budget semaine</span><span style="font:600 13px Manrope;color:transparent">—</span></div>
+    <div style="background:#17303D;border-radius:24px;padding:16px 18px;flex-shrink:0">
+      <div><div style="font:700 10.5px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8FB4C7">Semaine 34 · lun → dim</div><div style="font:800 34px Manrope;color:#fff;margin-top:4px;letter-spacing:-1.2px">{{ weekLeftLabel }} <span style="font:600 13px Manrope;color:#8FB4C7">kcal disponibles</span></div></div>
+      <div style="height:8px;border-radius:99px;background:#264A5C;margin:14px 0 10px"><div style="height:8px;border-radius:99px;width:{{ weekPct }};background:#4FB0E8;transition:width .45s ease"></div></div>
+      <div style="display:flex;justify-content:space-between;font:600 12px Manrope;color:#8FA6B4"><span>{{ weekUsedLabel }} consommées</span><span>budget {{ weekBudgetLabel }}</span></div>
+    </div>
+    <div style="font:700 11px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8A9AA5;flex-shrink:0">Jour par jour</div>
+    <div style="background:#fff;border-radius:20px;box-shadow:0 1px 8px rgba(23,48,61,.05);overflow:hidden;flex-shrink:0">
+      <sc-for list="{{ weekRows }}" as="r" hint-placeholder-count="7">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:{{ r.border }}"><span style="font:600 14px Manrope;color:#17303D;width:88px">{{ r.day }}</span><div style="flex:1;height:6px;border-radius:99px;background:#EDE8DF;margin:0 14px"><div style="height:6px;border-radius:99px;width:{{ r.width }};background:{{ r.barColor }}"></div></div><span style="font:700 13px Manrope;color:#17303D;width:46px;text-align:right">{{ r.kcal }}</span><span style="font:700 12px Manrope;color:{{ r.deltaColor }};width:62px;text-align:right">{{ r.delta }}</span></div>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:9px;flex-shrink:0">
+      <div style="flex:1;background:#DCEAF2;border-radius:20px;padding:13px 15px"><div style="font:600 11px Manrope;color:#4A7E9B">Reste par jour</div><div style="font:800 21px Manrope;color:#17303D;margin-top:3px">{{ weekPerDayLeft }}</div><div style="font:600 11px Manrope;color:#4A7E9B;margin-top:1px">sur 2 jours</div></div>
+      <div style="flex:1;background:#F6E5DC;border-radius:20px;padding:13px 15px"><div style="font:600 11px Manrope;color:#A05A38">Écart cumulé</div><div style="font:800 21px Manrope;color:#17303D;margin-top:3px">{{ weekGap }}</div><div style="font:600 11px Manrope;color:#A05A38;margin-top:1px">kcal / jour</div></div>
+    </div>
+    <div style="background:#F1F7FB;border:1px solid #D3E5F0;border-radius:18px;padding:13px 16px;font:600 12.5px Manrope;color:#3F718D;line-height:1.5;flex-shrink:0;margin-bottom:6px">Jeudi a dépassé de 450 kcal, compensé par mercredi et vendredi. La semaine reste dans la cible.</div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isBadges }}" hint-placeholder-val="{{ false }}">
+  <div class="kv-scroll" style="flex:1;padding:14px 22px 4px;display:flex;flex-direction:column;gap:11px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0"><span onClick="{{ goBack }}" style="font:600 13px Manrope;color:#1C86C4;cursor:pointer">‹ Retour</span><span style="font:800 16px Manrope;color:#17303D">Badges</span><span style="font:600 13px Manrope;color:transparent">—</span></div>
+    <div style="background:#17303D;border-radius:24px;padding:16px 18px;flex-shrink:0;display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font:700 10.5px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8FB4C7">Série en cours</div><div style="font:800 34px Manrope;color:#fff;margin-top:4px;letter-spacing:-1.2px">5 <span style="font:600 13px Manrope;color:#8FB4C7">jours d'affilée</span></div></div>
+      <div style="text-align:right"><div style="font:700 15px Manrope;color:#E8A88A">record 11</div><div style="font:600 11.5px Manrope;color:#8FB4C7;margin-top:2px">juillet</div></div>
+    </div>
+    <div style="font:700 11px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8A9AA5;flex-shrink:0">Obtenus</div>
+    <div style="display:flex;flex-direction:column;gap:7px;flex-shrink:0">
+      <sc-for list="{{ badgesEarned }}" as="b" hint-placeholder-count="4"><div style="display:flex;justify-content:space-between;align-items:center;background:#fff;border-radius:16px;padding:12px 16px;box-shadow:0 1px 8px rgba(23,48,61,.05)"><div><div style="font:700 14px Manrope;color:#17303D">{{ b.name }}</div><div style="font:500 11.5px Manrope;color:#8A9AA5;margin-top:1px">{{ b.desc }}</div></div><span style="font:800 16px Manrope;color:{{ b.color }}">{{ b.count }}</span></div></sc-for>
+    </div>
+    <div style="font:700 11px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8A9AA5;flex-shrink:0">À débloquer</div>
+    <div style="display:flex;flex-direction:column;gap:7px;flex-shrink:0;padding-bottom:6px">
+      <sc-for list="{{ badgesLocked }}" as="b" hint-placeholder-count="3"><div style="display:flex;justify-content:space-between;align-items:center;background:#F4EFE7;border-radius:16px;padding:12px 16px"><div><div style="font:700 14px Manrope;color:#8A9AA5">{{ b.name }}</div><div style="font:500 11.5px Manrope;color:#A6B2BB;margin-top:1px">{{ b.desc }}</div></div><span style="font:700 12.5px Manrope;color:#A6B2BB">{{ b.progress }}</span></div></sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isActivity }}" hint-placeholder-val="{{ false }}">
+  <div class="kv-scroll" style="flex:1;padding:14px 22px 4px;display:flex;flex-direction:column;gap:11px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-shrink:0"><span onClick="{{ goBack }}" style="font:600 13px Manrope;color:#1C86C4;cursor:pointer">Annuler</span><span style="font:800 16px Manrope;color:#17303D">Activité</span><span style="font:600 13px Manrope;color:transparent">—</span></div>
+    <div style="font:700 11px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8A9AA5;flex-shrink:0">Type</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;flex-shrink:0">
+      <sc-for list="{{ activityTypes }}" as="a" hint-placeholder-count="6"><div onClick="{{ a.onTap }}" style="background:{{ a.bg }};color:{{ a.color }};border-radius:16px;padding:13px 16px;font:700 13.5px Manrope;box-shadow:{{ a.shadow }};cursor:pointer">{{ a.label }}</div></sc-for>
+    </div>
+    <div style="font:700 11px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8A9AA5;flex-shrink:0">Durée</div>
+    <div style="display:flex;gap:8px;flex-shrink:0">
+      <sc-for list="{{ durations }}" as="d" hint-placeholder-count="4"><div onClick="{{ d.onTap }}" style="flex:1;background:{{ d.bg }};color:{{ d.color }};border-radius:14px;padding:12px 0;text-align:center;font:700 13.5px Manrope;cursor:pointer">{{ d.label }}</div></sc-for>
+    </div>
+    <div style="background:#17303D;border-radius:24px;padding:16px 18px;flex-shrink:0;display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font:700 10.5px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8FB4C7">Estimation</div><div style="font:800 30px Manrope;color:#E8A88A;margin-top:4px;letter-spacing:-1px">{{ activityKcal }} <span style="font:600 12.5px Manrope;color:#8FB4C7">kcal brûlées</span></div></div>
+      <div style="text-align:right;font:600 11.5px Manrope;color:#8FB4C7;line-height:1.6">{{ activityRate }} kcal<br>par minute</div>
+    </div>
+    <div style="background:#F6E5DC;border-radius:18px;padding:13px 16px;font:600 12.5px Manrope;color:#8A4A2C;line-height:1.5;flex-shrink:0">Les estimations sont approximatives. Elles s'ajoutent au budget du jour et de la semaine.</div>
+    <div onClick="{{ saveActivity }}" style="background:#C4643C;color:#fff;border-radius:16px;padding:15px;text-align:center;font:800 15px Manrope;flex-shrink:0;cursor:pointer;margin-bottom:6px" style-hover="background:#B0562F">Enregistrer l'activité</div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+  <div class="kv-scroll" style="flex:1;padding:14px 22px 4px;display:flex;flex-direction:column;gap:9px">
+    <div style="font:800 24px Manrope;color:#17303D;letter-spacing:-.4px;flex-shrink:0">Réglages</div>
+    <div style="background:#17303D;border-radius:22px;padding:13px 18px;display:flex;align-items:center;gap:14px;flex-shrink:0"><div style="width:40px;height:40px;border-radius:50%;background:#4FB0E8;color:#0F2231;display:flex;align-items:center;justify-content:center;font:800 16px Manrope">F</div><div style="flex:1"><div style="font:800 16px Manrope;color:#fff">François</div><div style="font:600 12px Manrope;color:#8FB4C7;margin-top:2px">Perte de poids · 0,5 kg / semaine</div></div><span style="font:400 18px Manrope;color:#5E7787">›</span></div>
+    <div style="font:700 11px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8A9AA5;flex-shrink:0">Objectif calorique</div>
+    <div style="background:#fff;border-radius:20px;padding:14px 18px;box-shadow:0 1px 8px rgba(23,48,61,.05);flex-shrink:0;display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font:800 22px Manrope;color:#17303D">{{ goalLabel }} <span style="font:600 12px Manrope;color:#A6B2BB">kcal / jour</span></div><div style="font:600 11.5px Manrope;color:#8A9AA5;margin-top:2px">semaine {{ weekBudgetLabel }}</div></div>
+      <div style="display:flex;gap:7px"><div onClick="{{ goalDown }}" style="width:36px;height:36px;border-radius:12px;background:#F1EDE5;color:#17303D;display:flex;align-items:center;justify-content:center;font:700 18px Manrope;cursor:pointer">−</div><div onClick="{{ goalUp }}" style="width:36px;height:36px;border-radius:12px;background:#E9F1F6;color:#1C86C4;display:flex;align-items:center;justify-content:center;font:700 18px Manrope;cursor:pointer">+</div></div>
+    </div>
+    <div style="font:700 11px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8A9AA5;flex-shrink:0">Préférences</div>
+    <div style="background:#fff;border-radius:20px;box-shadow:0 1px 8px rgba(23,48,61,.05);overflow:hidden;flex-shrink:0">
+      <sc-for list="{{ toggles }}" as="t" hint-placeholder-count="3">
+        <div onClick="{{ t.onTap }}" style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:{{ t.border }};cursor:pointer"><span style="font:600 14px Manrope;color:#17303D">{{ t.label }}</span><span style="width:44px;height:26px;border-radius:99px;background:{{ t.trackColor }};position:relative;display:block;transition:background .25s"><span style="position:absolute;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;display:block;left:{{ t.knobLeft }};transition:left .2s ease"></span></span></div>
+      </sc-for>
+    </div>
+    <div style="font:700 11px Manrope;letter-spacing:1.2px;text-transform:uppercase;color:#8A9AA5;flex-shrink:0">Données</div>
+    <div style="background:#fff;border-radius:20px;box-shadow:0 1px 8px rgba(23,48,61,.05);overflow:hidden;flex-shrink:0">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 18px;border-bottom:1px solid #F1EDE5"><span style="font:600 14px Manrope;color:#17303D">Exporter mes données</span><span style="font:700 13.5px Manrope;color:#C0C9CF">›</span></div>
+      <div onClick="{{ resetDay }}" style="display:flex;justify-content:space-between;align-items:center;padding:11px 18px;cursor:pointer"><span style="font:600 14px Manrope;color:#C4643C">Réinitialiser la journée</span><span style="font:700 13.5px Manrope;color:#C0C9CF">›</span></div>
+    </div>
+    <div style="font:500 11.5px Manrope;color:#A6B2BB;text-align:center;flex-shrink:0;padding-bottom:4px">Kcalvi 1.0 — hors ligne, sans compte</div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;background:rgba(15,34,49,.4);display:flex;flex-direction:column;justify-content:flex-end">
+    <div onClick="{{ closeSheet }}" style="flex:1"></div>
+    <div style="background:#fff;border-radius:30px 30px 46px 46px;box-shadow:0 -6px 24px rgba(23,48,61,.16);padding:18px 22px 30px;display:flex;flex-direction:column;gap:13px">
+      <div style="width:38px;height:4px;border-radius:99px;background:#E3DACB;align-self:center"></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><div><div style="font:800 18px Manrope;color:#17303D">{{ sheetName }}</div><div style="font:500 12px Manrope;color:#8A9AA5;margin-top:2px">{{ sheetRef }}</div></div><div style="font:800 24px Manrope;color:#1C86C4">{{ sheetKcal }}<span style="font:600 12px Manrope;color:#8A9AA5"> kcal</span></div></div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div style="flex:1;background:#F1EDE5;border-radius:14px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center"><span style="font:800 18px Manrope;color:#17303D">{{ sheetQty }}</span><span style="font:600 13px Manrope;color:#8A9AA5">{{ sheetUnit }}</span></div>
+        <div style="display:flex;gap:6px">
+          <sc-for list="{{ sheetPortions }}" as="p" hint-placeholder-count="3"><div onClick="{{ p.onTap }}" style="background:{{ p.bg }};border-radius:12px;padding:11px 13px;font:700 12px Manrope;color:{{ p.color }};cursor:pointer">{{ p.label }}</div></sc-for>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;font:600 12px Manrope;color:#8A9AA5"><span style="white-space:nowrap">P <span style="color:#17303D;font-weight:800">{{ sheetP }} g</span></span><span style="white-space:nowrap">G <span style="color:#17303D;font-weight:800">{{ sheetG }} g</span></span><span style="white-space:nowrap">L <span style="color:#17303D;font-weight:800">{{ sheetL }} g</span></span></div>
+      <div onClick="{{ confirmAdd }}" style="background:#C4643C;color:#fff;border-radius:16px;padding:15px;text-align:center;font:800 15px Manrope;cursor:pointer" style-hover="background:#B0562F">Ajouter au {{ addMealLabel }}</div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ toastOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;left:22px;right:22px;bottom:114px;background:#17303D;color:#fff;border-radius:16px;padding:13px 18px;font:700 13px Manrope;display:flex;justify-content:space-between;align-items:center;box-shadow:0 10px 26px rgba(15,34,49,.3)"><span>{{ toastText }}</span><span style="color:#4FB0E8">✓</span></div>
+  </sc-if>
+
+  <sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}">
+  <div style="border-top:1px solid #EDE8DF;background:#FDFBF7;padding:11px 18px 24px;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;text-align:center;flex-shrink:0">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5"><div onClick="{{ t.onTap }}" style="font:{{ t.weight }} 10.5px Manrope;color:{{ t.color }};cursor:pointer">{{ t.label }}</div></sc-for>
+  </div>
+  </sc-if>
+
+</div>
+
+<div style="width:250px;flex:none;display:flex;flex-direction:column;gap:12px">
+  <div style="font:800 15px Manrope;color:#17303D">Maquette interactive</div>
+  <div style="font:600 12.5px Manrope;color:#6E7C86;line-height:1.6">Tout est cliquable : touche un repas pour ajouter un aliment (recherche, quantité, portions rapides), une ligne du journal pour la retirer, la carte semaine pour le détail, une recette pour l'ajouter au dîner, la carte Pesée pour mettre à jour ton poids.</div>
+  <div style="height:1px;background:#DDD5C7"></div>
+  <div style="font:600 12px Manrope;color:#8A9AA5;line-height:1.7">L'anneau, les macros, le budget semaine et les graphiques se recalculent en direct.</div>
+</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:760,&quot;height&quot;:940}}">
+const FOODS = [
+  {id:'poulet',name:'Poulet rôti',unit:'g',per:100,kcal:165,p:31,g:0,l:3.6,fav:true,portions:[100,120,150]},
+  {id:'skyr',name:'Skyr nature',unit:'g',per:100,kcal:64,p:11,g:4,l:0.2,fav:true,portions:[150,200,250]},
+  {id:'mozza',name:'Mozzarella Galbani',unit:'g',per:100,kcal:254,p:22,g:1.6,l:19,fav:false,portions:[30,70,125]},
+  {id:'feta',name:'Feta Delhaize',unit:'g',per:100,kcal:264,p:14.2,g:1.5,l:22,fav:true,portions:[30,40,60]},
+  {id:'pain',name:'Pain complet',unit:'g',per:100,kcal:257,p:9,g:44,l:3.3,fav:false,portions:[35,70,100]},
+  {id:'amandes',name:'Amandes',unit:'g',per:100,kcal:604,p:21,g:5,l:53,fav:false,portions:[20,30,50]},
+  {id:'banane',name:'Banane',unit:'unité',per:1,kcal:95,p:1.3,g:23,l:0.3,fav:false,portions:[1,2,3]},
+  {id:'oeuf',name:'Œuf',unit:'unité',per:1,kcal:78,p:6.3,g:0.6,l:5.3,fav:true,portions:[1,2,3]},
+  {id:'granola',name:'Granola',unit:'g',per:100,kcal:389,p:9,g:62,l:12,fav:false,portions:[25,40,60]},
+  {id:'amande-lait',name:"Lait d'amande",unit:'ml',per:100,kcal:24,p:0.5,g:2.4,l:1.2,fav:false,portions:[100,200,250]}
+];
+const RECIPES = [
+  {id:'salade',name:'Salade poulet feta',servings:4,kcal:395,p:31,g:9,l:26,fav:true,ingredients:[['Poulet','120 g',198],['Feta','40 g',106],['Tomate','150 g',27],['Avocat','50 g',80],["Huile d'olive",'10 g',88],['Sauce yaourt','20 g',42]]},
+  {id:'chili',name:'Chili sin carne',servings:6,kcal:410,p:22,g:58,l:8,fav:false,ingredients:[['Haricots rouges','400 g',476],['Tomates concassées','800 g',160],['Protéines de soja','150 g',495],['Maïs','200 g',172],['Épices','—',0]]},
+  {id:'soupe',name:'Soupe de courgettes',servings:4,kcal:120,p:4,g:9,l:7,fav:false,ingredients:[['Courgettes','800 g',136],['Pomme de terre','150 g',116],['Crème','60 g',120],['Bouillon','—',10]]}
+];
+const MEAL_ORDER = ['breakfast','lunch','snack','dinner'];
+const MEAL_LABELS = {breakfast:'Petit-déjeuner',lunch:'Déjeuner',snack:'Collation',dinner:'Dîner'};
+const ACTIVITIES = [['Marche',4.7],['Course',10.5],['Vélo',7.2],['Natation',8.4],['Musculation',5.5],['Autre',5]];
+const fmt = n => Math.round(n).toLocaleString('fr-FR').replace(/\u202f|\u00a0/g,' ');
+const fr1 = n => n.toFixed(1).replace('.',',');
+
+class Component extends DCLogic {
+  state = {
+    screen:'today', prevScreen:'today', addMeal:'dinner', query:'', libQuery:'', filter:'Récents',
+    sheet:null, qty:0, toast:'', range:'30 j', recipeId:'salade',
+    draftWeight:77.8, activityType:'Marche', activityMin:45,
+    goal:1600, weekly:true, mondayStart:true, notify:false,
+    burned:210,
+    weights:[[16,81.0],[20,80.4],[24,79.9],[28,80.1],[1,79.0],[6,78.6],[11,78.1],[15,77.8]],
+    foods:FOODS.map(f=>({...f})),
+    meals:{
+      breakfast:[{name:'Skyr nature',qty:'200 g',kcal:128,p:22,g:8,l:0.4},{name:'Banane',qty:'1 unité',kcal:95,p:1.3,g:23,l:0.3},{name:'Granola',qty:'25 g',kcal:97,p:2.3,g:15.5,l:3}],
+      lunch:[{name:'Salade poulet feta',qty:'1 portion',kcal:395,p:31,g:9,l:26},{name:'Pain complet',qty:'35 g',kcal:90,p:3.2,g:15.4,l:1.2}],
+      snack:[{name:'Amandes',qty:'20 g',kcal:120,p:4.2,g:1,l:10.6}],
+      dinner:[]
+    }
+  };
+
+  toast(text){ clearTimeout(this._t); this.setState({toast:text}); this._t = setTimeout(()=>this.setState({toast:''}),2200); }
+  go(screen){ this.setState(s=>({screen, prevScreen:s.screen, sheet:null})); }
+  totals(){
+    let k=0,p=0,g=0,l=0;
+    MEAL_ORDER.forEach(m=>this.state.meals[m].forEach(i=>{k+=i.kcal;p+=i.p;g+=i.g;l+=i.l;}));
+    return {k,p,g,l};
+  }
+  sheetCalc(){
+    const s=this.state.sheet; if(!s) return null;
+    const r=this.state.qty/s.per;
+    return {kcal:Math.round(s.kcal*r),p:s.p*r,g:s.g*r,l:s.l*r};
+  }
+
+  renderVals(){
+    const st=this.state, sc=st.screen, t=this.totals();
+    const goal=st.goal, consumed=t.k, remaining=goal-consumed+st.burned;
+    const pct=Math.max(0,Math.min(1,consumed/goal));
+    const weekUsed=6575+consumed, weekBudget=goal*7;
+    const macroGoals={p:100,g:160,l:60};
+
+    const mealCards=MEAL_ORDER.map(m=>{
+      const items=st.meals[m], kcal=items.reduce((a,i)=>a+i.kcal,0), empty=items.length===0;
+      return {label:MEAL_LABELS[m], sub:empty?'Rien encore':items.map(i=>i.name).join(', '),
+        value:empty?'+ Ajouter':fmt(kcal)+' kcal', valueColor:empty?'#1C86C4':'#17303D',
+        bg:empty?'#F1F7FB':'#fff', border:empty?'1px solid #D3E5F0':'1px solid transparent',
+        shadow:empty?'none':'0 1px 8px rgba(23,48,61,.05)',
+        onTap:()=>this.setState(s=>({screen:'add',prevScreen:'today',addMeal:m,query:'',filter:'Récents',sheet:null}))};
+    });
+
+    const addSource = st.filter==='Recettes' ? RECIPES.map(r=>({...r,isRecipe:true}))
+      : st.filter==='Favoris' ? st.foods.filter(f=>f.fav)
+      : st.filter==='Aliments' ? st.foods
+      : [st.foods[0], RECIPES[0], st.foods[2], st.foods[1], st.foods[4], st.foods[5]].map(x=>x.servings?{...x,isRecipe:true}:x);
+    const q=st.query.trim().toLowerCase();
+    const addResults=(q?[...st.foods,...RECIPES.map(r=>({...r,isRecipe:true}))]:addSource)
+      .filter(x=>!q||x.name.toLowerCase().includes(q))
+      .map(x=>({
+        name:x.name+(x.fav?' ★':''),
+        sub:x.isRecipe?`Recette · ${x.kcal} kcal / portion`:`${x.kcal} kcal / ${x.per===1?x.unit:x.per+' '+x.unit}`,
+        onTap:()=>x.isRecipe
+          ? this.setState(s=>({sheet:{name:x.name,unit:'portion',per:1,kcal:x.kcal,p:x.p,g:x.g,l:x.l,portions:[1,2,3],ref:`${x.kcal} kcal / portion`},qty:1}))
+          : this.setState(s=>({sheet:{name:x.name,unit:x.unit,per:x.per,kcal:x.kcal,p:x.p,g:x.g,l:x.l,portions:x.portions,ref:`${x.kcal} kcal / ${x.per===1?x.unit:x.per+' '+x.unit}`},qty:x.portions[1]}))
+      }));
+
+    const journalSections=MEAL_ORDER.map(m=>{
+      const items=st.meals[m];
+      return {label:MEAL_LABELS[m], total:fmt(items.reduce((a,i)=>a+i.kcal,0))+' kcal', totalColor:'#17303D', empty:items.length===0,
+        onAdd:()=>this.setState({screen:'add',prevScreen:'journal',addMeal:m,query:'',sheet:null}),
+        items:items.map((i,idx)=>({name:i.name,qty:i.qty,kcal:fmt(i.kcal),border:idx<items.length-1?'1px solid #F1EDE5':'none',
+          onRemove:()=>{const next={...st.meals}; next[m]=items.filter((_,k)=>k!==idx); this.setState({meals:next}); this.toast(i.name+' retiré');}}))};
+    });
+    journalSections.push({label:'Activité',total:'− '+fmt(st.burned)+' kcal',totalColor:'#C4643C',empty:false,
+      items:[{name:st.activityType,qty:st.activityMin+' min',kcal:fmt(st.burned),border:'none',onRemove:()=>{this.setState({burned:0});this.toast('Activité retirée');}}]});
+
+    const weekBase=[1480,1720,1240,2050,1385,consumed,0];
+    const weekDeltas=weekBase.map((v,i)=>i>=5?null:v-goal);
+    const weekRows=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'].map((d,i)=>{
+      const v=weekBase[i], over=weekDeltas[i]!==null&&weekDeltas[i]>0;
+      return {day:d,width:Math.min(100,(v/2200)*100)+'%',barColor:over?'#C4643C':'#1C86C4',kcal:v?fmt(v):'—',
+        delta:i===5?'en cours':i===6?'à venir':(weekDeltas[i]>0?'+':'−')+fmt(Math.abs(weekDeltas[i])),
+        deltaColor:i>=5?(i===5?'#8A9AA5':'#C0C9CF'):(over?'#C4643C':'#1C86C4'),
+        border:i<6?'1px solid #F1EDE5':'none'};
+    });
+
+    const wr=st.range==='30 j'?st.weights:st.weights.slice(-4);
+    const vals=wr.map(w=>w[1]), min=Math.min(...vals)-0.6, max=Math.max(...vals)+0.6;
+    const pts=wr.map((w,i)=>{const x=6+i*(308/Math.max(1,wr.length-1));const y=12+(1-(w[1]-min)/(max-min))*70;return `${x.toFixed(0)},${y.toFixed(0)}`;}).join(' ');
+    const startW=st.weights[0][1], curW=st.weights[st.weights.length-1][1];
+
+    const weekChartData=[['S30',1520],['S31',1610],['S32',1780],['S33',1490],['S34',Math.round(weekUsed/6)]];
+    const rate=(ACTIVITIES.find(a=>a[0]===st.activityType)||['x',5])[1];
+
+    const recipe=RECIPES.find(r=>r.id===st.recipeId);
+    const lq=st.libQuery.trim().toLowerCase();
+
+    return {
+      isToday:sc==='today', isAdd:sc==='add', isJournal:sc==='journal', isLibrary:sc==='library',
+      isRecipe:sc==='recipe', isProgress:sc==='progress', isWeigh:sc==='weigh', isWeek:sc==='week',
+      isBadges:sc==='badges', isActivity:sc==='activity', isSettings:sc==='settings',
+      showTabs:['today','journal','library','progress','settings'].includes(sc),
+      showWeekly:st.weekly,
+      arcDash:(pct*324).toFixed(0)+' 324',
+      consumedLabel:fmt(consumed), goalLabel:fmt(goal), burnedLabel:fmt(st.burned), remainingLabel:fmt(remaining),
+      macros:[{name:'Protéines',value:Math.round(t.p),goal:macroGoals.p,width:Math.min(100,t.p/macroGoals.p*100)+'%',color:'#1C86C4'},
+              {name:'Glucides',value:Math.round(t.g),goal:macroGoals.g,width:Math.min(100,t.g/macroGoals.g*100)+'%',color:'#C4643C'},
+              {name:'Lipides',value:Math.round(t.l),goal:macroGoals.l,width:Math.min(100,t.l/macroGoals.l*100)+'%',color:'#7B8C6A'}],
+      mealCards,
+      weekBars:[0,1,2,3,4,5,6].map(i=>({color:i===3?'#C4643C':i===5?'#8FC3E0':i===6?'#C3D8E4':'#1C86C4'})),
+      weekLeftLabel:fmt(Math.max(0,weekBudget-weekUsed)), weekUsedLabel:fmt(weekUsed), weekBudgetLabel:fmt(weekBudget),
+      weekPct:Math.min(100,weekUsed/weekBudget*100)+'%', weekRows,
+      weekPerDayLeft:fmt(Math.max(0,(weekBudget-weekUsed)/2)), weekGap:(weekUsed/6>goal?'+':'− ')+fmt(Math.abs(weekUsed/6-goal)),
+      addMealLabel:MEAL_LABELS[st.addMeal].toLowerCase(),
+      query:st.query, onQuery:e=>this.setState({query:e.target.value}),
+      addFilters:['Récents','Favoris','Aliments','Recettes'].map(f=>({label:f==='Favoris'?'★ Favoris':f,
+        bg:st.filter===f?'#17303D':'#F1EDE5', color:st.filter===f?'#fff':'#6E7C86',
+        onTap:()=>this.setState({filter:f})})),
+      addResults, noResults:addResults.length===0,
+      copyYesterday:()=>{const next={...st.meals};next.dinner=[...next.dinner,{name:'Chili sin carne',qty:'1,5 portion',kcal:615,p:33,g:87,l:12}];this.setState({meals:next,screen:'today'});this.toast('Dîner d\'hier copié · 615 kcal');},
+      journalDays:[10,11,12,13,14,15,16].map((n,i)=>{
+        const dows=['L','M','M','J','V','S','D'], today=n===15;
+        return {num:n,dow:dows[i],labelColor:today?'#17303D':'#A6B2BB',bg:today?'#17303D':n===16?'#F4EFE7':'#fff',
+          shadow:today||n===16?'none':'0 1px 6px rgba(23,48,61,.05)',numColor:today?'#fff':n===16?'#C0C9CF':'#17303D',
+          dot:today?'#4FB0E8':n===16?'#E3DACB':n===13?'#C4643C':'#1C86C4',onTap:()=>this.toast(n+' août · journée affichée')};
+      }),
+      selectedDayLabel:'Samedi 15 août', selectedDayKcal:fmt(consumed),
+      selectedDayStatus:consumed>goal?'Au-dessus':'Dans la cible',
+      journalSections,
+      libQuery:st.libQuery, onLibQuery:e=>this.setState({libQuery:e.target.value}),
+      libFoodCount:st.foods.length, libRecipeCount:RECIPES.length, libFavCount:st.foods.filter(f=>f.fav).length,
+      libRecipes:RECIPES.filter(r=>!lq||r.name.toLowerCase().includes(lq)).map(r=>({name:r.name+(r.fav?' ★':''),sub:`${r.servings} portions · ${r.kcal} kcal / portion`,
+        onTap:()=>this.setState(s=>({screen:'recipe',prevScreen:'library',recipeId:r.id}))})),
+      libFoods:st.foods.filter(f=>!lq||f.name.toLowerCase().includes(lq)).map(f=>({name:f.name,
+        sub:`${f.kcal} kcal / ${f.per===1?f.unit:f.per+' '+f.unit}`, favColor:f.fav?'#C4643C':'#DCD5C8',
+        onFav:()=>{this.setState({foods:st.foods.map(x=>x.id===f.id?{...x,fav:!x.fav}:x)});this.toast(f.fav?'Retiré des favoris':f.name+' en favori');}})),
+      recipe:{name:recipe.name,servings:recipe.servings,kcal:fmt(recipe.kcal),p:recipe.p,g:recipe.g,l:recipe.l},
+      recipeIngredients:recipe.ingredients.map((ing,i)=>({name:ing[0],qty:ing[1],kcal:ing[2]?fmt(ing[2]):'—',border:i<recipe.ingredients.length-1?'1px solid #F1EDE5':'none'})),
+      addRecipeToMeal:()=>{const next={...st.meals};next.dinner=[...next.dinner,{name:recipe.name,qty:'1 portion',kcal:recipe.kcal,p:recipe.p,g:recipe.g,l:recipe.l}];this.setState({meals:next,screen:'today'});this.toast(recipe.name+' ajoutée au dîner');},
+      ranges:['30 j','90 j'].map(r=>({label:r,bg:st.range===r?'#17303D':'#F1EDE5',color:st.range===r?'#fff':'#6E7C86',onTap:()=>this.setState({range:r})})),
+      weightLabel:fr1(curW), weightStartLabel:fr1(startW),
+      weightDeltaLabel:(curW-startW<=0?'− ':'+ ')+fr1(Math.abs(curW-startW))+' kg',
+      weightPoints:pts, rangeStartLabel:st.range==='30 j'?'16 juil.':'6 août',
+      avgKcal:fmt(weekUsed/6), weekChartLabel:'5 sem.',
+      weekChart:weekChartData.map(([label,v],i)=>({label,height:Math.round(v/2000*90)+'px',
+        color:v>goal?'#C4643C':i===4?'#8FC3E0':'#1C86C4'})),
+      draftWeightLabel:fr1(st.draftWeight),
+      draftDeltaLabel:(st.draftWeight-curW<=0?'− ':'+ ')+fr1(Math.abs(st.draftWeight-curW))+' kg depuis la dernière pesée',
+      weightSteps:[['− 0,5',-0.5],['− 0,1',-0.1],['+ 0,1',0.1],['+ 0,5',0.5]].map(([label,d])=>({label,
+        onTap:()=>this.setState(s=>({draftWeight:Math.round((s.draftWeight+d)*10)/10}))})),
+      weighHistory:st.weights.slice().reverse().slice(0,4).map((w,i,a)=>({date:w[0]+(w[0]>=16?' juil.':' août'),value:fr1(w[1]),border:i<a.length-1?'1px solid #F1EDE5':'none'})),
+      saveWeight:()=>{this.setState(s=>({weights:[...s.weights,[15,s.draftWeight]],screen:'progress'}));this.toast('Pesée enregistrée · '+fr1(st.draftWeight)+' kg');},
+      badgesEarned:[{name:'Dans la cible',desc:'Journée terminée dans la fourchette',count:'×18',color:'#1C86C4'},
+        {name:'Semaine maîtrisée',desc:'Budget hebdo respecté',count:'×3',color:'#1C86C4'},
+        {name:'Protéines au rendez-vous',desc:'Objectif protéines atteint',count:'×12',color:'#C4643C'},
+        {name:'Encodeur régulier',desc:'7 jours consécutifs encodés',count:'×2',color:'#C4643C'}],
+      badgesLocked:[{name:'Perfect week',desc:'7 jours dans la cible sur une semaine',progress:'5 / 7'},
+        {name:'Premier kilo',desc:'Perdre 1 kg depuis le départ',progress:'atteint'},
+        {name:'Cap des 30',desc:'30 jours encodés',progress:'24 / 30'}],
+      activityTypes:ACTIVITIES.map(([label])=>({label,bg:st.activityType===label?'#17303D':'#fff',
+        color:st.activityType===label?'#fff':'#17303D',shadow:st.activityType===label?'none':'0 1px 8px rgba(23,48,61,.05)',
+        onTap:()=>this.setState({activityType:label})})),
+      durations:[15,30,45,60].map(m=>({label:m+' min',bg:st.activityMin===m?'#E9F1F6':'#fff',
+        color:st.activityMin===m?'#1C86C4':'#17303D',onTap:()=>this.setState({activityMin:m})})),
+      activityKcal:fmt(rate*st.activityMin), activityRate:fr1(rate),
+      saveActivity:()=>{this.setState({burned:Math.round(rate*st.activityMin),screen:'today'});this.toast(st.activityType+' · '+fmt(rate*st.activityMin)+' kcal');},
+      goalUp:()=>this.setState(s=>({goal:s.goal+50})), goalDown:()=>this.setState(s=>({goal:Math.max(1200,s.goal-50)})),
+      toggles:[['Budget hebdomadaire','weekly'],['Semaine commençant lundi','mondayStart'],['Rappels du soir','notify']]
+        .map(([label,key],i,a)=>({label,trackColor:st[key]?'#1C86C4':'#E3DACB',knobLeft:st[key]?'21px':'3px',
+          border:i<a.length-1?'1px solid #F1EDE5':'none',onTap:()=>this.setState({[key]:!st[key]})})),
+      resetDay:()=>{this.setState({meals:{breakfast:[],lunch:[],snack:[],dinner:[]},burned:0,screen:'today'});this.toast('Journée réinitialisée');},
+      sheetOpen:!!st.sheet, sheetName:st.sheet?st.sheet.name:'', sheetRef:st.sheet?st.sheet.ref:'',
+      sheetUnit:st.sheet?st.sheet.unit:'', sheetQty:st.sheet?(st.sheet.unit==='portion'?fr1(st.qty):st.qty):'',
+      sheetKcal:st.sheet?fmt(this.sheetCalc().kcal):'', sheetP:st.sheet?fr1(this.sheetCalc().p):'',
+      sheetG:st.sheet?fr1(this.sheetCalc().g):'', sheetL:st.sheet?fr1(this.sheetCalc().l):'',
+      sheetPortions:st.sheet?st.sheet.portions.map(v=>({label:st.sheet.unit==='portion'?v+' port.':v+' '+st.sheet.unit,
+        bg:st.qty===v?'#E9F1F6':'#F1EDE5',color:st.qty===v?'#1C86C4':'#6E7C86',onTap:()=>this.setState({qty:v})})):[],
+      closeSheet:()=>this.setState({sheet:null}),
+      confirmAdd:()=>{const c=this.sheetCalc(),s=st.sheet,next={...st.meals};
+        next[st.addMeal]=[...next[st.addMeal],{name:s.name,qty:(s.unit==='portion'?fr1(st.qty)+' portion':st.qty+' '+s.unit),kcal:c.kcal,p:c.p,g:c.g,l:c.l}];
+        this.setState({meals:next,sheet:null,screen:'today',query:''});this.toast(s.name+' · '+fmt(c.kcal)+' kcal ajoutées');},
+      toastOpen:!!st.toast, toastText:st.toast,
+      goBack:()=>this.go(st.prevScreen==='add'?'today':st.prevScreen),
+      goJournal:()=>this.go('journal'), goWeek:()=>this.go('week'), goBadges:()=>this.go('badges'),
+      goWeigh:()=>this.go('weigh'), goActivity:()=>this.go('activity'),
+      tabs:[["Aujourd'hui",'today'],['Journal','journal'],['Bibliothèque','library'],['Progression','progress'],['Réglages','settings']]
+        .map(([label,key])=>({label,weight:sc===key?'700':'600',color:sc===key?'#1C86C4':'#A6B2BB',onTap:()=>this.go(key)}))
+    };
+  }
+}
+
+</script>
+</body>
+</html>
