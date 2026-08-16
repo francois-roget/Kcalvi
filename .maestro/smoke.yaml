@@ -1,0 +1,4 @@
+appId: be.rogetconcept.kcalvi
+---
+- launchApp
+- assertVisible: "Aujourd'hui"
