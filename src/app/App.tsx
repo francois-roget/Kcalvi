@@ -12,7 +12,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import '@/i18n';
 
-import { QueryProvider, ThemeProvider, ToastProvider } from './providers';
+import { ThemeProvider, ToastProvider } from './providers';
 import { RootNavigator } from './RootNavigator';
 
 SplashScreen.preventAutoHideAsync();
@@ -38,12 +38,10 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <QueryProvider>
-          <ToastProvider>
-            <RootNavigator />
-            <StatusBar style="auto" />
-          </ToastProvider>
-        </QueryProvider>
+        <ToastProvider>
+          <RootNavigator />
+          <StatusBar style="auto" />
+        </ToastProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

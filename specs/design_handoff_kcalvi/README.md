@@ -90,8 +90,8 @@ Voir `interactions.md` — navigation, animations (Reanimated), états vides, er
 ## State Management
 Aucun state manager global (conforme au §1 des specs techniques) :
 - données persistées : WatermelonDB via repositories (`src/data/repositories`) ;
-- lecture / cache : TanStack Query, une clé par vue (`['diary', dateISO]`, `['foods', query]`,
-  `['weights', range]`, `['week', weekStartISO]`) ;
+- lecture : requêtes observées (`repository.search(...): Observable<T>` + hook `useObservable`,
+  voir TECHNICAL_SPECS.MD §5.3) — pas de TanStack Query ni de clés à invalider pour les données locales ;
 - état local d'écran : `useState` (quantité en cours de saisie, filtre de recherche, plage 30/90 jours,
   brouillon de pesée, type et durée d'activité) ;
 - calculs : `src/domain/calculations` — l'UI n'additionne jamais elle-même (voir `interactions.md`).
