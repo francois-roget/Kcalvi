@@ -17,8 +17,8 @@ Ce document décrit comment Kcalvi est construit techniquement : stack, architec
 | Cible | iOS 18+ |
 | Gestionnaire de paquets | npm |
 | Navigation | React Navigation |
-| Persistance locale | WatermelonDB |
-| Cache / état asynchrone | TanStack Query |
+| Persistance locale | WatermelonDB (requêtes observées, voir §5.3) |
+| Cache / état asynchrone (données externes futures) | TanStack Query (installé, non utilisé pour le MVP — voir §5.3) |
 | Styling | styled-components |
 | Formulaires | React Hook Form |
 | Dates | date-fns |
@@ -31,7 +31,7 @@ Ce document décrit comment Kcalvi est construit techniquement : stack, architec
 | CI | GitHub Actions (lint, typecheck, tests) |
 | Build iOS | EAS Build |
 
-Aucun state manager global (Zustand, Redux...) n'est utilisé pour le MVP : WatermelonDB (données persistées), TanStack Query (cache/état asynchrone) et l'état local des composants (`useState`) couvrent les besoins actuels. À réévaluer si un état UI global complexe apparaît (ex: filtres partagés entre écrans).
+Aucun state manager global (Zustand, Redux...) n'est utilisé pour le MVP : WatermelonDB (données persistées, lues via des requêtes observées — §5.3), et l'état local des composants (`useState`) couvrent les besoins actuels. À réévaluer si un état UI global complexe apparaît (ex: filtres partagés entre écrans).
 
 ---
 
@@ -161,8 +161,8 @@ Chaque entité expose une interface repository et une implémentation locale :
 ```ts
 // data/repositories/FoodRepository.ts
 interface FoodRepository {
-  findById(id: string): Promise<Result<Food, DomainError>>;
-  search(query: string): Promise<Food[]>;
+  findById(id: string): Promise<Result<Food, DomainError>>;        // lecture ponctuelle
+  search(query: string): Observable<Food[]>;                       // requête observée — voir §5.3
   create(input: CreateFoodInput): Promise<Result<Food, DomainError>>;
   update(id: string, input: UpdateFoodInput): Promise<Result<Food, DomainError>>;
   archive(id: string): Promise<Result<void, DomainError>>;
@@ -188,6 +188,23 @@ Les repositories appellent le `domain/` pour :
 - valider les données avant écriture (RM14, RM15) ;
 - déclencher la réévaluation des badges après une écriture pertinente (§8.3) ;
 - ne jamais recalculer rétroactivement une valeur déjà écrite (RM16 — les valeurs nutritionnelles consommées sont copiées dans `DiaryEntry` à la création, jamais dérivées de `Food` à la lecture).
+
+## 5.3 Réactivité
+
+Les méthodes de repository qui alimentent une liste ou un écran affiché retournent un `Observable<T>` (`Query.observe()` de WatermelonDB, réexporté par `@nozbe/watermelondb/utils/rx`) plutôt qu'un `Promise<T>` : toute écriture affectant le résultat déclenche automatiquement une nouvelle émission, donc un re-render, sans code d'invalidation à maintenir. Les lectures ponctuelles (`findById`, utilisé par exemple au chargement initial d'un formulaire d'édition) et les écritures (`create`, `update`, `archive`, `delete`) restent en `Promise`, car il n'y a rien à observer dans la durée pour une action one-shot.
+
+Côté UI, un hook partagé fait le pont avec React :
+
+```ts
+// src/hooks/useObservable.ts
+function useObservable<T>(observable: Observable<T>, initialValue: T): T { /* ... */ }
+```
+
+```ts
+const foods = useObservable(foodRepository.search(query), []);
+```
+
+**TanStack Query n'est pas utilisé pour ces données locales** : sa proposition de valeur (cache réseau, retry, staleness) ne s'applique pas à une base SQLite locale à latence quasi nulle, et superposer une invalidation de clés manuelle (`['diary', date]`, `['week', weekStart]`...) par-dessus la réactivité déjà native de WatermelonDB duplique un même problème avec deux mécanismes — au prix d'oublis d'invalidation silencieux. La dépendance reste installée : elle redeviendra pertinente pour les sources de données externes prévues en V1.1/V2 (Open Food Facts, providers IA — spec produit §40), qui sont, elles, de vrais appels réseau asynchrones.
 
 ---
 

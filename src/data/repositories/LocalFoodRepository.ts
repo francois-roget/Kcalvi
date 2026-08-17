@@ -1,4 +1,5 @@
 import { Q } from '@nozbe/watermelondb';
+import { map, type Observable } from '@nozbe/watermelondb/utils/rx';
 
 import { assertNonNegative, checkFoodDeletable } from '@/domain/validation';
 import type { DomainError, Food, Result } from '@/domain/types';
@@ -44,15 +45,15 @@ export class LocalFoodRepository implements FoodRepository {
     }
   }
 
-  async search(query: string): Promise<Food[]> {
-    const records = await database
+  search(query: string): Observable<Food[]> {
+    return database
       .get<FoodModel>('foods')
       .query(
         Q.where('name', Q.like(`%${Q.sanitizeLikeString(query)}%`)),
         Q.where('is_archived', false),
       )
-      .fetch();
-    return records.map(toDomainFood);
+      .observe()
+      .pipe(map((records) => records.map(toDomainFood)));
   }
 
   async create(input: CreateFoodInput): Promise<Result<Food, DomainError>> {

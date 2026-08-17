@@ -21,8 +21,9 @@ sont des présentations modales (header Annuler / titre / action).
 3. Tap sur un résultat → QuantitySheet, quantité présélectionnée sur la portion médiane.
 4. Chaque changement de quantité recalcule kcal et macros (RM02) ; l'affichage ne recalcule rien lui-même,
    il appelle `calculateProportionalNutrition`.
-5. Validation → `diaryRepository.addEntry` (valeurs nutritionnelles copiées, RM16), invalidation des clés
-   TanStack Query `['diary', date]` et `['week', weekStart]`, réévaluation des badges à l'écriture
+5. Validation → `diaryRepository.addEntry` (valeurs nutritionnelles copiées, RM16) ; les écrans qui
+   observent `['diary', date]`/`['week', weekStart]` via `useObservable` se mettent à jour automatiquement
+   (TECHNICAL_SPECS §5.3, pas d'invalidation manuelle), réévaluation des badges à l'écriture
    (TECHNICAL_SPECS §8.3), retour sur Aujourd'hui + Toast « <aliment> · <kcal> kcal ajoutées ».
 
 ## Animations (Reanimated)
