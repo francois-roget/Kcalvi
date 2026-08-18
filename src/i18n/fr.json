@@ -130,5 +130,51 @@
       "negativeValue": "{{field}} ne peut pas être négatif",
       "generic": "Une erreur est survenue. Réessaie."
     }
+  },
+  "library": {
+    "addButtonLabel": "Créer un aliment",
+    "searchPlaceholder": "Rechercher un aliment ou une marque",
+    "filters": {
+      "all": "Tout",
+      "favorites": "★ Favoris",
+      "foods": "Aliments",
+      "recipes": "Recettes"
+    },
+    "hero": {
+      "foods": "Aliments",
+      "recipes": "Recettes",
+      "favorites": "Favoris"
+    },
+    "sections": {
+      "recipes": "Recettes",
+      "recipesComingSoon": "Bientôt disponible",
+      "foods": "Aliments"
+    },
+    "list": {
+      "noResults": "Aucun résultat"
+    },
+    "food": {
+      "addFavorite": "Ajouter {{name}} aux favoris",
+      "removeFavorite": "Retirer {{name}} des favoris",
+      "deleteLabel": "Supprimer {{name}}"
+    },
+    "empty": {
+      "title": "Ta bibliothèque est vide",
+      "subtitle": "Ajoute les aliments que tu manges vraiment. Chacun encodé une fois te servira pour toujours.",
+      "primaryCta": "Créer mon premier aliment",
+      "secondaryCta": "Partir d'une liste de base",
+      "secondaryCtaHint": "Fonctionnalité à venir"
+    },
+    "deleteDialog": {
+      "title": "Supprimer {{name}} ?",
+      "message": "Cette action est irréversible.",
+      "confirm": "Supprimer",
+      "confirmAnyway": "Supprimer quand même",
+      "cancel": "Annuler",
+      "archive": "Archiver",
+      "inUseTitle_one": "Cet aliment est utilisé dans {{count}} recette.",
+      "inUseTitle_other": "Cet aliment est utilisé dans {{count}} recettes.",
+      "inUseMessage": "Sa suppression pourrait affecter ces recettes."
+    }
   }
 }
