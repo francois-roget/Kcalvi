@@ -10,9 +10,11 @@
 
 ## A. Audit / data layer
 
+**Décisions prises (stand-up) :** filtre "★ Favoris" côté écran (filtrage en mémoire du résultat observé, pas de changement de signature `search()`) ; recherche F12 étendue à name+brand dès ce sprint ; i18n en continu par ticket (voir note en section E) ; seed data KCAL-108 non branché ce sprint.
+
 | Ticket | Description | Fichiers | Estimation |
 |---|---|---|---|
-| KCAL-101 | Auditer `LocalFoodRepository` vs besoins de l'écran (recherche nom+marque F12, tri, filtre favoris) — décider si le filtre "★ Favoris" se fait côté repository ou côté écran (résultat observé filtré en mémoire) | `src/data/repositories/LocalFoodRepository.ts` | 1h |
+| KCAL-101 | Étendre `LocalFoodRepository.search()` pour matcher name **et** brand (F12) ; confirmer le filtre "★ Favoris" côté écran (filtrage en mémoire du résultat observé, cf. KCAL-104) | `src/data/repositories/LocalFoodRepository.ts` | 2h |
 
 ---
 
@@ -22,13 +24,13 @@
 |---|---|---|---|
 | KCAL-102 | Layout écran : SafeArea, header titre + bouton rond "+" (→ FoodFormScreen) | `features/library/screens/LibraryScreen.tsx` | 2h |
 | KCAL-103 | `SearchField` branché sur `foodRepository.search()` via `useObservable`, debounce léger | idem | 2h |
-| KCAL-104 | Chips de filtre Tout / ★ Favoris / Aliments / Recettes (filtrage client-side du résultat observé — cf. KCAL-101) | idem | 3h |
+| KCAL-104 | Chips de filtre Tout / ★ Favoris / Aliments / Recettes (filtrage client-side du résultat observé, décidé en KCAL-101) | idem | 3h |
 | KCAL-105 | `HeroCard` de comptage 3 colonnes séparées par filet (aliments blanc, recettes terracotta.300, favoris azure.400) | idem | 2h |
 | KCAL-106 | Liste des aliments en `Card` light : nom, référence, tap ★ = bascule favori inline (`foodRepository.update`) | idem | 3h |
 | KCAL-107 | Section "Recettes" — titre de section + liste vide (Sprint 2 fournira les données ; ne pas bloquer le layout dessus) | idem | 1h |
 | KCAL-108 | État vide bibliothèque (2s) : "Ta bibliothèque est vide" + CTA "Créer mon premier aliment" (primary) et "Partir d'une liste de base" (secondary) | idem | 2h |
 
-> ⚠️ KCAL-108 — le bouton "Partir d'une liste de base" suppose des données de seed, non tranchées (`TECHNICAL_SPECS.MD` §20, point ouvert). Scope Sprint 1 : afficher le bouton, le brancher peut être reporté si le seed n'est pas prêt — à décider en stand-up avant de commencer ce ticket.
+> **Décidé** — KCAL-108 : le bouton "Partir d'une liste de base" est affiché mais **non branché** ce sprint (pas d'action, ou action désactivée). Les données de seed restent un point ouvert de `TECHNICAL_SPECS.MD` §20 ; le câblage est reporté à un sprint où le seed sera tranché.
 
 ---
 
@@ -55,13 +57,13 @@
 |---|---|---|---|
 | KCAL-119 | Dialogue "Annuler / Archiver / Supprimer quand même" déclenché depuis `LibraryScreen`, câblé sur `checkFoodDeletable` (déjà écrit dans `domain/validation`) | `features/library/screens/LibraryScreen.tsx` (+ composant dialogue partagé si besoin dans `ui/`) | 3h |
 
+> Note QA : `checkFoodDeletable` a besoin d'une liste de `RecipeIngredient` pour détecter un aliment utilisé dans une recette. `RecipeRepository` n'existe qu'au Sprint 2, donc la branche "Archiver (aliment utilisé)" ne peut pas être déclenchée en pratique ce sprint — seule la branche "Supprimer" (aucun usage) est testable en KCAL-124.
+
 ---
 
 ## E. Internationalisation
 
-| Ticket | Description | Fichiers | Estimation |
-|---|---|---|---|
-| KCAL-120 | Clés `fr.json` : labels, placeholders, messages d'erreur, état vide (Library + FoodForm) | `src/i18n/fr.json` | 2h |
+**Décidé — pas de ticket batché en fin de sprint.** Chaque ticket des sections B, C et D qui introduit du texte visible (labels, placeholders, erreurs, `accessibilityLabel`/`accessibilityHint`, état vide) ajoute ses clés `fr.json` au moment où il est fait, sous son propre namespace (`library.*`, `foodForm.*`) pour limiter les conflits sur un fichier partagé. Conforme à `AGENTS.md` (aucun texte en dur) et à `SPRINTS.MD` ("i18n en continu"). KCAL-120 est supprimé ; son estimation était déjà en grande partie couverte par le temps de chaque ticket UI.
 
 ---
 
@@ -87,14 +89,14 @@
 
 | Catégorie | Sous-total |
 |---|---|
-| A. Audit / data layer | 1h |
+| A. Audit / data layer | 2h |
 | B. LibraryScreen | 15h |
 | C. FoodFormScreen | 21h |
 | D. Suppression / archivage | 3h |
-| E. i18n | 2h |
+| E. i18n (continu, absorbé dans B/C/D) | — |
 | F. Tests | 9h |
 | G. QA manuelle | 2h |
-| **Total** | **~53h** |
+| **Total** | **~52h** |
 
 **Ordre suggéré :** A → C (le formulaire ne dépend de rien d'autre) → B (la liste a besoin d'avoir des aliments créés pour être testée visuellement) → D → E en continu → F en fin de sprint → G en clôture.
 
