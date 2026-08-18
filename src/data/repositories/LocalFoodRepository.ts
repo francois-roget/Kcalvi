@@ -48,10 +48,14 @@ export class LocalFoodRepository implements FoodRepository {
   }
 
   search(query: string): Observable<Food[]> {
+    // F12: matches on name OR brand (Food.brand -> `brand` column, optional string).
+    // An empty query still yields the `%%` wildcard for both fields, so an empty
+    // search keeps returning every non-archived food, unchanged from before.
+    const likeQuery = `%${Q.sanitizeLikeString(query)}%`;
     return this.database
       .get<FoodModel>('foods')
       .query(
-        Q.where('name', Q.like(`%${Q.sanitizeLikeString(query)}%`)),
+        Q.or(Q.where('name', Q.like(likeQuery)), Q.where('brand', Q.like(likeQuery))),
         Q.where('is_archived', false),
       )
       .observe()
