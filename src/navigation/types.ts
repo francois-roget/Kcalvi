@@ -36,6 +36,7 @@ export type JournalStackParamList = {
 
 export type LibraryStackParamList = {
   Library: undefined;
+  FoodForm: { foodId: string } | undefined;
 };
 
 export type ProgressStackParamList = {
@@ -53,6 +54,7 @@ export type RootTabParamList = {
 export type TodayScreenProps = NativeStackScreenProps<TodayStackParamList, 'Today'>;
 export type JournalScreenProps = NativeStackScreenProps<JournalStackParamList, 'Journal'>;
 export type LibraryScreenProps = NativeStackScreenProps<LibraryStackParamList, 'Library'>;
+export type FoodFormScreenProps = NativeStackScreenProps<LibraryStackParamList, 'FoodForm'>;
 export type ProgressScreenProps = NativeStackScreenProps<ProgressStackParamList, 'Progress'>;
 export type ProfileScreenProps = NativeStackScreenProps<ProgressStackParamList, 'Profile'>;
 
