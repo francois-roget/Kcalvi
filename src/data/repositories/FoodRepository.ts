@@ -11,9 +11,9 @@ export type CreateFoodInput = Omit<
 export type UpdateFoodInput = Partial<CreateFoodInput>;
 
 export interface FoodRepository {
-  /** Lecture ponctuelle (ex: chargement initial d'un formulaire d'édition). */
+  /** One-off read (e.g. initial load of an edit form). */
   findById(id: string): Promise<Result<Food, DomainError>>;
-  /** Requête observée : émet une nouvelle liste à chaque écriture affectant le résultat (voir TECHNICAL_SPECS.MD §5.3). */
+  /** Observed query: emits a new list on every write affecting the result (see TECHNICAL_SPECS.MD §5.3). */
   search(query: string): Observable<Food[]>;
   create(input: CreateFoodInput): Promise<Result<Food, DomainError>>;
   update(id: string, input: UpdateFoodInput): Promise<Result<Food, DomainError>>;

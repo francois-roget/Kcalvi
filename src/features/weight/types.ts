@@ -1,3 +1,3 @@
-// Types spécifiques à l'écran/parcours Suivi du poids (F25-F27).
-// Les types métier partagés (WeightEntry) vivent dans `@/domain/types`.
+// Types specific to the Weight tracking screen/flow (F25-F27).
+// Shared business types (WeightEntry) live in `@/domain/types`.
 export {};

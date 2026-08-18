@@ -6,7 +6,7 @@ export type HeroCardProps = PropsWithChildren<{
   radius?: '3xl' | '4xl';
 }>;
 
-/** Card dark radius 3xl/4xl — un seul HeroCard par écran (components.md). */
+/** Dark card, radius 3xl/4xl — only one HeroCard per screen (components.md). */
 export function HeroCard({ radius = '4xl', children }: HeroCardProps) {
   return (
     <Card tone="dark" radius={radius} paddingVertical={18} paddingHorizontal={18}>

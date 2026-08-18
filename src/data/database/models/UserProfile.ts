@@ -12,6 +12,11 @@ export default class UserProfile extends Model {
   @field('start_weight') startWeight!: number;
   @field('current_weight') currentWeight!: number;
   @field('target_weight') targetWeight!: number;
+  @field('sex') sex!: string;
+  @field('age') age!: number;
+  @field('height') height!: number;
+  @field('activity_level') activityLevel!: string;
+  @field('singleton') singleton!: number;
   @readonly @date('created_at') createdAt!: Date;
   @readonly @date('updated_at') updatedAt!: Date;
 }

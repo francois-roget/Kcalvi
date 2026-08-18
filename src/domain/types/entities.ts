@@ -1,5 +1,9 @@
 export type MealType = 'BREAKFAST' | 'LUNCH' | 'SNACK' | 'DINNER';
 
+export type Sex = 'male' | 'female';
+
+export type ActivityLevel = 'sedentary' | 'light' | 'active' | 'very_active';
+
 export type UserProfile = {
   id: string;
   name: string;
@@ -10,6 +14,10 @@ export type UserProfile = {
   startWeight: number;
   currentWeight: number;
   targetWeight: number;
+  sex: Sex;
+  age: number;
+  height: number;
+  activityLevel: ActivityLevel;
   createdAt: Date;
   updatedAt: Date;
 };

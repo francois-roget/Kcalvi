@@ -1,3 +1,3 @@
-// Types spécifiques à l'écran/parcours Activité physique (F17, RM05).
-// Les types métier partagés (ActivityEntry) vivent dans `@/domain/types`.
+// Types specific to the Physical activity screen/flow (F17, RM05).
+// Shared business types (ActivityEntry) live in `@/domain/types`.
 export {};

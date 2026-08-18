@@ -1,6 +1,31 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
+import type { ActivityLevel, Sex } from '@/domain/types';
+
+export type OnboardingProfileDraft = {
+  firstName: string;
+  sex: Sex;
+  age: number;
+  height: number;
+  currentWeight: number;
+  targetWeight: number;
+  activityLevel: ActivityLevel;
+};
+
+export type OnboardingStackParamList = {
+  Welcome: undefined;
+  ProfileSetup: undefined;
+  GoalSetup: OnboardingProfileDraft;
+};
+
+export type WelcomeScreenProps = NativeStackScreenProps<OnboardingStackParamList, 'Welcome'>;
+export type ProfileSetupScreenProps = NativeStackScreenProps<
+  OnboardingStackParamList,
+  'ProfileSetup'
+>;
+export type GoalSetupScreenProps = NativeStackScreenProps<OnboardingStackParamList, 'GoalSetup'>;
+
 export type TodayStackParamList = {
   Today: undefined;
 };
