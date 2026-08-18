@@ -36,6 +36,7 @@ export type JournalStackParamList = {
 
 export type LibraryStackParamList = {
   Library: undefined;
+  /** `undefined` params = create mode, `{ foodId }` = edit mode (KCAL-118). */
   FoodForm: { foodId: string } | undefined;
 };
 
