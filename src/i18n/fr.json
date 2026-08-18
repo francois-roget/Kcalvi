@@ -8,9 +8,74 @@
   },
   "common": {
     "kcal": "kcal",
-    "close": "Fermer"
+    "close": "Fermer",
+    "starsRating": "{{count}} sur {{max}} étoiles"
+  },
+  "validation": {
+    "invalidNumber": "{{field}} n'est pas un nombre valide",
+    "outOfRange": "{{field}} doit être compris entre {{min}} et {{max}}"
   },
   "errorBoundary": {
     "genericError": "Une erreur est survenue."
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Kcalvi",
+      "subtitle": "Le suivi calorique simple, pensé pour durer. Ta bibliothèque, tes recettes, ton budget de la semaine.",
+      "bullets": {
+        "steps": "Encodage en 3 tapes",
+        "weeklyBudget": "Budget hebdomadaire, pas de journée ratée",
+        "offline": "100 % hors ligne, aucune inscription"
+      },
+      "cta": "Commencer",
+      "dataNotice": "Tes données restent sur ton iPhone"
+    },
+    "profileSetup": {
+      "title": "Parle-moi de toi",
+      "subtitle": "Ces informations servent à calculer ton budget calorique.",
+      "firstName": "Prénom",
+      "firstNameError": "Le prénom ne peut pas être vide",
+      "sexMale": "Homme",
+      "sexFemale": "Femme",
+      "age": "Âge",
+      "ageUnit": "ans",
+      "height": "Taille",
+      "heightUnit": "cm",
+      "currentWeight": "Poids actuel",
+      "targetWeight": "Poids cible",
+      "weightUnit": "kg",
+      "activityLevel": "Niveau d'activité",
+      "activityLevels": {
+        "sedentary": "Sédentaire",
+        "light": "Légèrement actif",
+        "active": "Actif",
+        "very_active": "Très actif"
+      },
+      "continue": "Continuer"
+    },
+    "goalSetup": {
+      "title": "Ton objectif",
+      "dailyCalories": "Calories par jour",
+      "maintenance": "Maintien",
+      "deficit": "Déficit",
+      "week": "Semaine",
+      "rateLabel": "Rythme (kg/semaine)",
+      "rateChip": "{{rate}} kg",
+      "protein": "Protéines",
+      "carbs": "Glucides",
+      "fat": "Lipides",
+      "weeklyBudgetInfo": "Le budget hebdomadaire est activé : un écart un jour se compense sur les autres.",
+      "createProfile": "Créer mon profil"
+    }
+  },
+  "today": {
+    "greeting": "Bonjour {{name}}"
+  },
+  "profile": {
+    "resetButton": "Réinitialiser mon profil",
+    "resetConfirmTitle": "Réinitialiser ton profil ?",
+    "resetConfirmMessage": "Tes informations d'onboarding seront supprimées et tu devras les ressaisir. Cette action est irréversible.",
+    "resetConfirmCancel": "Annuler",
+    "resetConfirmConfirm": "Réinitialiser"
   }
 }

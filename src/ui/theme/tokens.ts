@@ -1,4 +1,4 @@
-// Design tokens validés — voir specs/design_handoff_kcalvi/theme.ts (source du handoff design).
+// Validated design tokens — see specs/design_handoff_kcalvi/theme.ts (source of the design handoff).
 export const colors = {
   ink: { 900: '#0F2231', 800: '#17303D', 700: '#264A5C' },
   azure: { 600: '#1C86C4', 400: '#4FB0E8', 300: '#8FC3E0', 100: '#DCEAF2', 50: '#F1F7FB' },

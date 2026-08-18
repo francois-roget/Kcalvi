@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 1,
+  version: 3,
   tables: [
     tableSchema({
       name: 'user_profiles',
@@ -14,9 +14,22 @@ export const schema = appSchema({
         { name: 'start_weight', type: 'number' },
         { name: 'current_weight', type: 'number' },
         { name: 'target_weight', type: 'number' },
+        { name: 'sex', type: 'string' },
+        { name: 'age', type: 'number' },
+        { name: 'height', type: 'number' },
+        { name: 'activity_level', type: 'string' },
+        // Always 1: combined with the unique index below, this prevents more than
+        // one record (the profile is a singleton, RootNavigator.tsx observes records[0]).
+        { name: 'singleton', type: 'number' },
         { name: 'created_at', type: 'number' },
         { name: 'updated_at', type: 'number' },
       ],
+      // WatermelonDB has no "unique" column type; this hook appends the index
+      // directly to the fresh-install SQL (a new database never replays
+      // migrations.ts, which only applies to existing-schema updates — without
+      // this hook, the v3 unique index would be missing on any first install).
+      unsafeSql: (sql) =>
+        `${sql}create unique index if not exists "index_user_profiles_singleton" on "user_profiles" ("singleton");`,
     }),
     tableSchema({
       name: 'foods',

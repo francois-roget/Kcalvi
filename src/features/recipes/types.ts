@@ -1,3 +1,3 @@
-// Types spécifiques à l'écran/parcours Recettes (F08-F09, RM03).
-// Les types métier partagés (Recipe, RecipeIngredient) vivent dans `@/domain/types`.
+// Types specific to the Recipes screen/flow (F08-F09, RM03).
+// Shared business types (Recipe, RecipeIngredient) live in `@/domain/types`.
 export {};

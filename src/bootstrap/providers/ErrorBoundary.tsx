@@ -7,8 +7,8 @@ type Props = PropsWithChildren<{ fallback?: ReactNode }>;
 type State = { hasError: boolean };
 
 /**
- * Un ErrorBoundary par tab principale (TECHNICAL_SPECS.MD §7.2) : capture les
- * crashes de rendu inattendus sans faire tomber toute l'app.
+ * One ErrorBoundary per main tab (TECHNICAL_SPECS.MD §7.2): catches unexpected
+ * render crashes without bringing down the whole app.
  */
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false };

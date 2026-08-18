@@ -1,3 +1,4 @@
+import type { Database } from '@nozbe/watermelondb';
 import { Q } from '@nozbe/watermelondb';
 import { map, type Observable } from '@nozbe/watermelondb/utils/rx';
 
@@ -5,7 +6,6 @@ import { assertNonNegative, checkFoodDeletable } from '@/domain/validation';
 import type { DomainError, Food, Result } from '@/domain/types';
 import { err, ok } from '@/domain/types/result';
 
-import { database } from '../database';
 import FoodModel from '../database/models/Food';
 import RecipeIngredientModel from '../database/models/RecipeIngredient';
 import type { CreateFoodInput, FoodRepository, UpdateFoodInput } from './FoodRepository';
@@ -36,17 +36,19 @@ function toDomainFood(record: FoodModel): Food {
 }
 
 export class LocalFoodRepository implements FoodRepository {
+  constructor(private readonly database: Database) {}
+
   async findById(id: string): Promise<Result<Food, DomainError>> {
     try {
-      const record = await database.get<FoodModel>('foods').find(id);
+      const record = await this.database.get<FoodModel>('foods').find(id);
       return ok(toDomainFood(record));
     } catch {
-      return err({ code: 'FOOD_NOT_FOUND', message: `Aliment ${id} introuvable` });
+      return err({ code: 'FOOD_NOT_FOUND', message: `Food ${id} not found` });
     }
   }
 
   search(query: string): Observable<Food[]> {
-    return database
+    return this.database
       .get<FoodModel>('foods')
       .query(
         Q.where('name', Q.like(`%${Q.sanitizeLikeString(query)}%`)),
@@ -60,8 +62,8 @@ export class LocalFoodRepository implements FoodRepository {
     const caloriesCheck = assertNonNegative(input.calories, 'calories');
     if (!caloriesCheck.ok) return caloriesCheck;
 
-    const record = await database.write(() =>
-      database.get<FoodModel>('foods').create((food) => {
+    const record = await this.database.write(() =>
+      this.database.get<FoodModel>('foods').create((food) => {
         food.name = input.name;
         food.brand = input.brand;
         food.calories = input.calories;
@@ -91,8 +93,8 @@ export class LocalFoodRepository implements FoodRepository {
       if (!caloriesCheck.ok) return caloriesCheck;
     }
 
-    const record = await database.get<FoodModel>('foods').find(id);
-    const updated = await database.write(() =>
+    const record = await this.database.get<FoodModel>('foods').find(id);
+    const updated = await this.database.write(() =>
       record.update((food) => {
         Object.assign(food, input);
       }),
@@ -102,8 +104,8 @@ export class LocalFoodRepository implements FoodRepository {
   }
 
   async archive(id: string): Promise<Result<void, DomainError>> {
-    const record = await database.get<FoodModel>('foods').find(id);
-    await database.write(() =>
+    const record = await this.database.get<FoodModel>('foods').find(id);
+    await this.database.write(() =>
       record.update((food) => {
         food.isArchived = true;
       }),
@@ -112,7 +114,7 @@ export class LocalFoodRepository implements FoodRepository {
   }
 
   async delete(id: string): Promise<Result<void, DomainError>> {
-    const usages = await database
+    const usages = await this.database
       .get<RecipeIngredientModel>('recipe_ingredients')
       .query(Q.where('food_id', id))
       .fetch();
@@ -129,8 +131,8 @@ export class LocalFoodRepository implements FoodRepository {
     );
     if (!deletable.ok) return deletable;
 
-    const record = await database.get<FoodModel>('foods').find(id);
-    await database.write(() => record.destroyPermanently());
+    const record = await this.database.get<FoodModel>('foods').find(id);
+    await this.database.write(() => record.destroyPermanently());
     return ok(undefined);
   }
 }

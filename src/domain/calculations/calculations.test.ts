@@ -1,11 +1,16 @@
 import type { Food } from '../types';
 import {
+  calculateBMR,
   calculateBurnedCalories,
   calculateConsumedCalories,
+  calculateDailyCalorieGoal,
+  calculateDailyDeficit,
   calculateNetCalories,
   calculateProportionalNutrition,
   calculateRemainingCalories,
   calculateRemainingWeeklyBudget,
+  calculateSuggestedMacros,
+  calculateTDEE,
   calculateWeeklyBudget,
   calculateWeeklyNetConsumption,
   getWeekBoundaries,
@@ -78,5 +83,50 @@ describe('getWeekBoundaries (RM12)', () => {
     const { start, end } = getWeekBoundaries(new Date('2026-08-19T12:00:00'));
     expect(start.getDay()).toBe(1);
     expect(end.getDay()).toBe(0);
+  });
+});
+
+describe('calculateBMR (onboarding, Mifflin-St Jeor)', () => {
+  it('adds the male offset', () => {
+    expect(calculateBMR('male', 80, 180, 30)).toBe(1780);
+  });
+
+  it('subtracts the female offset', () => {
+    expect(calculateBMR('female', 65, 165, 28)).toBe(1380.25);
+  });
+});
+
+describe('calculateTDEE (onboarding)', () => {
+  it('applies the activity multiplier to the BMR', () => {
+    expect(calculateTDEE(1780, 'light')).toBe(2447.5);
+  });
+});
+
+describe('calculateDailyDeficit (onboarding, 7700 kcal/kg)', () => {
+  it('converts a weekly rate into a daily deficit', () => {
+    expect(calculateDailyDeficit(0.25)).toBe(275);
+    expect(calculateDailyDeficit(0.5)).toBe(550);
+    expect(calculateDailyDeficit(0.75)).toBe(825);
+  });
+});
+
+describe('calculateDailyCalorieGoal (onboarding)', () => {
+  it('subtracts the deficit from the TDEE', () => {
+    expect(calculateDailyCalorieGoal(2447.5, 550)).toBe(1898);
+  });
+
+  it('clamps to the 1200 kcal safety floor', () => {
+    expect(calculateDailyCalorieGoal(1000, 500)).toBe(1200);
+  });
+});
+
+describe('calculateSuggestedMacros (onboarding, protein g/kg)', () => {
+  it('derives protein/fat/carbs from the calorie goal and body weight', () => {
+    expect(calculateSuggestedMacros(1898, 80)).toEqual({
+      calories: 1898,
+      protein: 130,
+      carbs: 220,
+      fat: 55,
+    });
   });
 });

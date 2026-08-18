@@ -4,12 +4,12 @@ const decimalFormatter = new Intl.NumberFormat('fr-BE', {
   maximumFractionDigits: 1,
 });
 
-/** Entier localisé fr-BE, ex. « 1 600 » (calories). */
+/** fr-BE localized integer, e.g. « 1 600 » (calories). */
 export function formatInteger(value: number): string {
   return integerFormatter.format(value);
 }
 
-/** Décimal à une position localisé fr-BE, ex. « 77,8 » (poids, macros en grammes). */
+/** fr-BE localized one-decimal number, e.g. « 77,8 » (weight, macros in grams). */
 export function formatDecimal(value: number): string {
   return decimalFormatter.format(value);
 }
@@ -24,4 +24,12 @@ export function formatGrams(value: number): string {
 
 export function formatKg(value: number): string {
   return `${formatDecimal(value)} kg`;
+}
+
+/**
+ * Parses fr-BE numeric input (decimal-pad keyboard: the decimal key types a
+ * comma, e.g. « 82,5 »). `Number()` alone returns NaN on the comma.
+ */
+export function parseLocaleNumber(value: string): number {
+  return Number(value.trim().replace(',', '.'));
 }

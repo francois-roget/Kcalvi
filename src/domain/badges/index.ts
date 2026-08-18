@@ -11,10 +11,10 @@ export type WeeklyBadgeContext = {
 };
 
 /**
- * RM13 — un badge n'est jamais plus favorable pour une consommation très
- * inférieure à l'objectif que pour une consommation dans la cible : les
- * conditions ci-dessous excluent explicitement le sous-dépassement excessif
- * via `MIN_RATIO`, elles ne testent pas seulement une borne supérieure.
+ * RM13 — a badge is never more favorable for a consumption far below the
+ * goal than for a consumption within the target: the conditions below
+ * explicitly exclude excessive under-shooting via `MIN_RATIO`, they don't
+ * just test an upper bound.
  */
 const MIN_RATIO = 0.9;
 const MAX_RATIO = 1;
