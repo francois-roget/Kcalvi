@@ -51,6 +51,7 @@ export type Recipe = {
   servings: number;
   notes?: string;
   isFavorite: boolean;
+  isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
 };

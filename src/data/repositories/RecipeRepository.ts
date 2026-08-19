@@ -2,8 +2,11 @@ import type { Observable } from '@nozbe/watermelondb/utils/rx';
 
 import type { DomainError, Recipe, RecipeIngredient, Result } from '@/domain/types';
 
-export type CreateRecipeInput = Omit<Recipe, 'id' | 'createdAt' | 'updatedAt' | 'isFavorite'> &
-  Partial<Pick<Recipe, 'isFavorite'>> & {
+export type CreateRecipeInput = Omit<
+  Recipe,
+  'id' | 'createdAt' | 'updatedAt' | 'isFavorite' | 'isArchived'
+> &
+  Partial<Pick<Recipe, 'isFavorite' | 'isArchived'>> & {
     ingredients: { foodId: string; quantity: number; unit: string }[];
   };
 

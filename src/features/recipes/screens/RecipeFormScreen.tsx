@@ -383,6 +383,7 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
       servings: 1,
       notes: undefined,
       isFavorite: false,
+      isArchived: false,
       createdAt: new Date(0),
       updatedAt: new Date(0),
     }),
