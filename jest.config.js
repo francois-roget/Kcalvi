@@ -25,7 +25,10 @@ module.exports = {
     {
       displayName: 'App',
       preset: 'jest-expo',
-      testPathIgnorePatterns: ['/node_modules/', '/.maestro/'],
+      // '/.claude/worktrees/' excludes agent worktrees nested under the repo root -- without it,
+      // a worktree's own node_modules pulls in a second React copy and every component test in
+      // this project crashes with "Cannot read properties of null (reading 'useContext')".
+      testPathIgnorePatterns: ['/node_modules/', '/.maestro/', '/.claude/worktrees/'],
     },
     {
       // Tests that hit a real SQLite database (better-sqlite3) through the real
