@@ -34,15 +34,29 @@ export type Food = {
   sugar?: number;
   referenceQuantity: number;
   referenceUnit: string;
-  servingQuantity?: number;
-  servingUnit?: string;
   category?: string;
   barcode?: string;
   source?: string;
   isFavorite: boolean;
   isArchived: boolean;
+  // KCAL-163: real multi-portion model. `search()` doesn't load this (avoids a second N+1
+  // on top of the one KCAL-158 already solved for recipe calories) -- only `findById` and
+  // the few call sites that need portion data populate it; everywhere else it's `[]`.
+  portions: FoodPortion[];
   createdAt: Date;
   updatedAt: Date;
+};
+
+/** KCAL-163: a single named quick portion for a Food (e.g. "1 pot" = 150 g). `quantity` is
+ *  always expressed in the owning Food's `referenceUnit` -- see
+ *  `convertPortionToReferenceQuantity` (domain/calculations). */
+export type FoodPortion = {
+  id: string;
+  foodId: string;
+  label: string;
+  quantity: number;
+  unit: string;
+  position: number;
 };
 
 export type Recipe = {
@@ -62,6 +76,10 @@ export type RecipeIngredient = {
   foodId: string;
   quantity: number;
   unit: string;
+  // KCAL-163d: the food_portions row this ingredient was entered via, if any (undefined when
+  // entered directly in the food's reference unit). May be a dangling reference if that
+  // portion was later deleted -- resolve defensively, never assume it still exists.
+  portionId?: string;
 };
 
 export type DiaryEntry = {

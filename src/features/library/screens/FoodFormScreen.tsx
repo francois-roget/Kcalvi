@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { ScrollView } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import styled from 'styled-components/native';
+import styled, { useTheme } from 'styled-components/native';
 
 import { foodRepository } from '@/data/repositories';
 import { calculateProportionalNutrition } from '@/domain/calculations';
@@ -18,19 +19,28 @@ import NumberField from '@/ui/NumberField';
 import QuickPortionButton from '@/ui/QuickPortionButton';
 import Text from '@/ui/Text';
 import TextField from '@/ui/TextField';
+import type { Theme } from '@/ui/theme';
 import Toggle from '@/ui/Toggle';
 import { formatDecimal, formatInteger, parseLocaleNumber } from '@/utils/format';
 
-/**
- * The `Food` domain type (src/domain/types/entities.ts) only stores a single
- * `servingQuantity`/`servingUnit` pair, not an array of portions. "Portions rapides"
- * (screens.md 2j: "pills existantes + « + Ajouter »") is therefore implemented as a
- * UI-only quick-fill affordance for that single field, not a real multi-portion list —
- * see the final report for the ambiguity this leaves open.
- */
+// KCAL-163: "Portions usuelles" is a real multi-portion list (food_portions), replacing the
+// Sprint 2 single servingQuantity/servingUnit shortcut this screen used to quick-fill.
 type ReferenceUnit = 'g' | 'ml' | 'unit';
 
 const REFERENCE_UNITS: ReferenceUnit[] = ['g', 'ml', 'unit'];
+
+/**
+ * Local draft shape for a portion row while the form is open. `position` isn't tracked
+ * explicitly -- the array's own order IS the display order (new rows are appended, deletion
+ * re-derives positions from index), and `position` is only computed from that index at
+ * submit/preview time.
+ */
+type PortionDraft = {
+  tempId: string;
+  label: string;
+  quantity: number;
+  unit: ReferenceUnit;
+};
 
 type FoodFormValues = {
   name: string;
@@ -167,6 +177,7 @@ function formatSubmitError(
 
 export function FoodFormScreen({ route, navigation }: FoodFormScreenProps) {
   const { t } = useTranslation();
+  const theme = useTheme() as Theme;
   const foodId = route.params?.foodId;
   const isEditMode = foodId !== undefined;
 
@@ -175,10 +186,12 @@ export function FoodFormScreen({ route, navigation }: FoodFormScreenProps) {
   const [submitting, setSubmitting] = useState(false);
   const [rootError, setRootError] = useState<string | undefined>(undefined);
 
-  // "Portions rapides" quick-fill for the food's single servingQuantity/servingUnit pair.
-  const [servingQuantity, setServingQuantity] = useState<number | undefined>(undefined);
-  const [servingUnit, setServingUnit] = useState<ReferenceUnit | undefined>(undefined);
-  const [editingPortion, setEditingPortion] = useState(false);
+  // "Portions usuelles" (KCAL-163): a real list of named quick portions.
+  const [portions, setPortions] = useState<PortionDraft[]>([]);
+  const nextPortionTempId = useRef(0);
+  // `null` = editor closed, `'new'` = creating a portion, otherwise the tempId being edited.
+  const [editingPortionId, setEditingPortionId] = useState<string | 'new' | null>(null);
+  const [portionLabelText, setPortionLabelText] = useState('');
   const [portionQuantityText, setPortionQuantityText] = useState('');
   const [portionUnit, setPortionUnit] = useState<ReferenceUnit>('g');
 
@@ -218,8 +231,16 @@ export function FoodFormScreen({ route, navigation }: FoodFormScreenProps) {
         category: food.category ?? '',
         isFavorite: food.isFavorite,
       });
-      setServingQuantity(food.servingQuantity);
-      setServingUnit((food.servingUnit as ReferenceUnit | undefined) ?? undefined);
+      // `findById` returns portions already ordered by `position` (LocalFoodRepository) --
+      // the array's own order is this screen's source of truth for display order.
+      setPortions(
+        food.portions.map((portion) => ({
+          tempId: portion.id,
+          label: portion.label,
+          quantity: portion.quantity,
+          unit: portion.unit as ReferenceUnit,
+        })),
+      );
     })();
 
     return () => {
@@ -251,52 +272,83 @@ export function FoodFormScreen({ route, navigation }: FoodFormScreenProps) {
       sugar: undefined,
       referenceQuantity: referenceQuantityFor(watchedValues.referenceUnit),
       referenceUnit: watchedValues.referenceUnit,
-      servingQuantity,
-      servingUnit,
       category: undefined,
       barcode: undefined,
       source: undefined,
       isFavorite: watchedValues.isFavorite,
       isArchived: false,
+      portions: [],
       createdAt: new Date(0),
       updatedAt: new Date(0),
     }),
-    [watchedValues, servingQuantity, servingUnit],
+    [watchedValues],
   );
 
-  const previewQuantity =
-    servingQuantity !== undefined && servingQuantity > 0
-      ? servingQuantity
-      : previewFood.referenceQuantity;
-  const previewUnitCode: ReferenceUnit =
-    servingQuantity !== undefined && servingQuantity > 0 && servingUnit
-      ? servingUnit
-      : watchedValues.referenceUnit;
+  // KCAL-163e: the preview reads the first portion by ascending position (the array's own
+  // order), falling back to the reference quantity when there are no portions at all.
+  const firstPortion = portions.length > 0 ? portions[0] : undefined;
+  const previewQuantity = firstPortion ? firstPortion.quantity : previewFood.referenceQuantity;
+  const previewUnitCode: ReferenceUnit = firstPortion
+    ? firstPortion.unit
+    : watchedValues.referenceUnit;
 
   const previewNutrition = useMemo(
     () => calculateProportionalNutrition(previewFood, previewQuantity),
     [previewFood, previewQuantity],
   );
 
-  function openPortionEditor() {
-    setPortionQuantityText(servingQuantity !== undefined ? numberToText(servingQuantity) : '');
-    setPortionUnit(servingUnit ?? watchedValues.referenceUnit);
-    setEditingPortion(true);
+  function openPortionEditor(target: string | 'new') {
+    if (target === 'new') {
+      setPortionLabelText('');
+      setPortionQuantityText('');
+      setPortionUnit(watchedValues.referenceUnit);
+    } else {
+      const portion = portions.find((candidate) => candidate.tempId === target);
+      if (!portion) return;
+      setPortionLabelText(portion.label);
+      setPortionQuantityText(numberToText(portion.quantity));
+      setPortionUnit(portion.unit);
+    }
+    setEditingPortionId(target);
   }
 
   function confirmPortion() {
     const parsed = toNumberOrUndefined(portionQuantityText);
     if (parsed === undefined || Number.isNaN(parsed) || parsed < 0) {
-      setEditingPortion(false);
+      setEditingPortionId(null);
       return;
     }
-    setServingQuantity(parsed);
-    setServingUnit(portionUnit);
-    setEditingPortion(false);
+    const label = portionLabelText.trim();
+
+    if (editingPortionId === 'new') {
+      setPortions((prev) => [
+        ...prev,
+        {
+          tempId: `draft-${nextPortionTempId.current++}`,
+          label,
+          quantity: parsed,
+          unit: portionUnit,
+        },
+      ]);
+    } else if (editingPortionId !== null) {
+      const targetId = editingPortionId;
+      setPortions((prev) =>
+        prev.map((portion) =>
+          portion.tempId === targetId
+            ? { ...portion, label, quantity: parsed, unit: portionUnit }
+            : portion,
+        ),
+      );
+    }
+    setEditingPortionId(null);
   }
 
   function cancelPortionEdit() {
-    setEditingPortion(false);
+    setEditingPortionId(null);
+  }
+
+  function removePortion(tempId: string) {
+    setPortions((prev) => prev.filter((portion) => portion.tempId !== tempId));
   }
 
   async function onValid(values: FoodFormValues) {
@@ -314,10 +366,16 @@ export function FoodFormScreen({ route, navigation }: FoodFormScreenProps) {
       sugar: toNumberOrUndefined(values.sugar),
       referenceQuantity: referenceQuantityFor(values.referenceUnit),
       referenceUnit: values.referenceUnit,
-      servingQuantity,
-      servingUnit,
       category: values.category.trim() || undefined,
       isFavorite: values.isFavorite,
+      // The array's own order is the display order -- `position` is derived from index here,
+      // not tracked as separate draft state (see PortionDraft's doc comment).
+      portions: portions.map((portion, index) => ({
+        label: portion.label,
+        quantity: portion.quantity,
+        unit: portion.unit,
+        position: index,
+      })),
     };
 
     const result =
@@ -568,24 +626,54 @@ export function FoodFormScreen({ route, navigation }: FoodFormScreenProps) {
 
           <Text variant="title">{t('foodForm.quickPortions.title')}</Text>
           <ChipRow>
-            {servingQuantity !== undefined ? (
-              <QuickPortionButton
-                testID="foodForm.quickPortions.existing"
-                label={`${numberToText(servingQuantity)} ${t(`foodForm.units.${servingUnit ?? 'g'}`)}`}
-                selected
-                onPress={openPortionEditor}
-              />
-            ) : null}
+            {portions.map((portion) => (
+              <View
+                key={portion.tempId}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+              >
+                <QuickPortionButton
+                  testID={`foodForm.quickPortions.pill.${portion.tempId}`}
+                  label={
+                    portion.label ||
+                    `${numberToText(portion.quantity)} ${t(`foodForm.units.${portion.unit}`)}`
+                  }
+                  selected={editingPortionId === portion.tempId}
+                  onPress={() => openPortionEditor(portion.tempId)}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('foodForm.quickPortions.deleteLabel', {
+                    label: portion.label,
+                  })}
+                  hitSlop={10}
+                  testID={`foodForm.quickPortions.delete.${portion.tempId}`}
+                  onPress={() => removePortion(portion.tempId)}
+                >
+                  <Ionicons
+                    name="close-circle-outline"
+                    size={16}
+                    color={theme.colors.text.tertiary}
+                  />
+                </Pressable>
+              </View>
+            ))}
             <QuickPortionButton
               testID="foodForm.quickPortions.add"
               label={t('foodForm.quickPortions.add')}
-              onPress={openPortionEditor}
+              onPress={() => openPortionEditor('new')}
             />
           </ChipRow>
 
-          {editingPortion ? (
+          {editingPortionId !== null ? (
             <Card tone="muted">
-              <Row>
+              <TextField
+                testID="foodForm.quickPortions.label"
+                label={t('foodForm.quickPortions.labelField')}
+                placeholder={t('foodForm.quickPortions.labelPlaceholder')}
+                value={portionLabelText}
+                onChangeText={setPortionLabelText}
+              />
+              <Row style={{ marginTop: 12 }}>
                 <FieldGroup>
                   <NumberField
                     testID="foodForm.quickPortions.quantity"

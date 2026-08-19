@@ -1,4 +1,5 @@
 import type { Database } from '@nozbe/watermelondb';
+import { Q } from '@nozbe/watermelondb';
 
 import type { DomainError, Food, Recipe, RecipeIngredient, Result } from '@/domain/types';
 import { err, ok } from '@/domain/types/result';
@@ -6,7 +7,7 @@ import { err, ok } from '@/domain/types/result';
 import FoodModel from '../database/models/Food';
 import RecipeModel from '../database/models/Recipe';
 import { toDomainRecipe, toDomainRecipeIngredient } from './LocalRecipeRepository';
-import { toDomainFood } from './mapping';
+import { toDomainFood, toDomainFoodPortion } from './mapping';
 
 /**
  * Joins a Recipe with its ingredients and each ingredient's Food record, producing the
@@ -33,9 +34,16 @@ export async function getRecipeWithIngredients(
     const items = await Promise.all(
       ingredientRecords.map(async (ingredientRecord) => {
         const foodRecord = await database.get<FoodModel>('foods').find(ingredientRecord.foodId);
+        // Portions are loaded here (unlike LocalFoodRepository.search()) so RecipeFormScreen's
+        // edit-mode load (KCAL-163d) can resolve `ingredient.portionId` to its `label` --
+        // bounded by this recipe's ingredient count, not the whole library, so it doesn't
+        // reintroduce the N+1 KCAL-158 solved for the library list.
+        const portionRecords = await foodRecord.portions
+          .extend(Q.sortBy('position', Q.asc))
+          .fetch();
         return {
           ingredient: toDomainRecipeIngredient(ingredientRecord),
-          food: toDomainFood(foodRecord),
+          food: toDomainFood(foodRecord, portionRecords.map(toDomainFoodPortion)),
         };
       }),
     );

@@ -410,6 +410,13 @@ describe('recipes migration v3 -> v4 (is_archived backfill)', () => {
   // present here too (CollectionMap validates static table <-> schema table pairing at
   // Database construction), so this otherwise-unused fixture repeats the rest of the
   // pre-ticket schema verbatim, not just the `recipes` table under test.
+  //
+  // `food_portions` (KCAL-163) is deliberately NOT in this v3 fixture -- it postdates
+  // schema v3 entirely, so `v3ModelClasses` below excludes FoodPortion to match (adding an
+  // empty `food_portions` table here just to satisfy CollectionMap would make the v4->v5
+  // migration step below fail with "table already exists" when it tries to create it).
+  const v3ModelClasses = modelClasses.filter((modelClass) => modelClass.table !== 'food_portions');
+
   const schemaV3 = appSchema({
     version: 3,
     tables: [
@@ -551,7 +558,7 @@ describe('recipes migration v3 -> v4 (is_archived backfill)', () => {
     // Sprint 2's LocalRecipeRepository.create() would have, minus `is_archived`
     // since that column doesn't exist yet at this schema version.
     const v3Adapter = new SQLiteAdapter({ dbName: dbPath, schema: schemaV3 });
-    const v3Database = new Database({ adapter: v3Adapter, modelClasses });
+    const v3Database = new Database({ adapter: v3Adapter, modelClasses: v3ModelClasses });
 
     const recipeIds = await v3Database.write(async () => {
       const collection = v3Database.get<RecipeModel>('recipes');

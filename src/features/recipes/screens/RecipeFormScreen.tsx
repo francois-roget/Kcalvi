@@ -14,7 +14,7 @@ import {
   calculatePortionNutrition,
   calculateProportionalNutrition,
   calculateRecipeTotals,
-  convertServingsToReferenceQuantity,
+  convertPortionToReferenceQuantity,
 } from '@/domain/calculations';
 import type { DomainError, Food, NutritionValues, RecipeIngredient } from '@/domain/types';
 import { assertNonNegative } from '@/domain/validation';
@@ -46,13 +46,16 @@ type PickerStep = 'search' | 'quantity';
  * Local draft shape for an ingredient row while the form is open.
  *
  * `referenceQuantity` is always expressed in `food.referenceUnit` terms -- it's exactly
- * what gets sent as `RecipeIngredient.quantity` on submit (see convertServingsToReferenceQuantity's
+ * what gets sent as `RecipeIngredient.quantity` on submit (see convertPortionToReferenceQuantity's
  * doc comment: `calculateProportionalNutrition` has no unit awareness, so the conversion from
  * "portions" must happen before the write, not at calculation time).
  *
- * `displayQuantity`/`displayUnit` are what the user actually typed/picked (e.g. "2" + "unité"
- * for "2 eggs"), kept separately so the ingredient list can show a human-readable amount instead
- * of the (potentially large) reference-unit-converted number.
+ * `displayQuantity`/`displayUnit` are what the user actually typed/picked (e.g. "2" + a
+ * portion's label for "2 pots"), kept separately so the ingredient list can show a
+ * human-readable amount instead of the (potentially large) reference-unit-converted number.
+ *
+ * `portionId` (KCAL-163d) is set when the ingredient was entered via a food_portions row --
+ * `undefined` when entered directly in the reference unit.
  */
 type IngredientDraft = {
   tempId: string;
@@ -60,6 +63,7 @@ type IngredientDraft = {
   referenceQuantity: number;
   displayQuantity: number;
   displayUnit: string;
+  portionId?: string;
 };
 
 type RecipeFormValues = {
@@ -155,28 +159,30 @@ function toNumberOrUndefined(text: string): number | undefined {
 }
 
 /**
- * Reconstructs what the user originally typed for an ingredient loaded from storage
- * (edit mode). `RecipeIngredient` only persists the reference-unit-equivalent `quantity` plus a
- * display-only `unit`, so if that unit matches the food's `servingUnit` we can back out the
- * original "N portions" value (quantity / servingQuantity); otherwise the ingredient was entered
- * directly in the reference unit, and quantity/unit are shown as-is.
+ * Resolves what to display for an ingredient loaded from storage (edit mode), using the
+ * explicit `portionId` traceability column (KCAL-163d) instead of the old unit-comparison
+ * heuristic (removed -- it became ambiguous the moment a food could have more than one
+ * portion sharing a unit). If `portionId` is set but no longer resolves to a portion on the
+ * food (it was deleted since), fall back to the reference-unit display -- the ingredient's
+ * stored `quantity` is always valid and calculable regardless of whether its portion label
+ * can still be resolved, so this must never throw or surface as an error.
  */
-function deriveIngredientDisplay(
+function resolveIngredientDisplay(
   food: Food,
   ingredient: RecipeIngredient,
-): { displayQuantity: number; displayUnit: string } {
-  if (
-    food.servingQuantity !== undefined &&
-    food.servingQuantity > 0 &&
-    food.servingUnit !== undefined &&
-    ingredient.unit === food.servingUnit
-  ) {
+): { displayQuantity: number; displayUnit: string; portionId?: string } {
+  const portion = ingredient.portionId
+    ? food.portions.find((candidate) => candidate.id === ingredient.portionId)
+    : undefined;
+
+  if (portion && portion.quantity > 0) {
     return {
-      displayQuantity: ingredient.quantity / food.servingQuantity,
-      displayUnit: ingredient.unit,
+      displayQuantity: ingredient.quantity / portion.quantity,
+      displayUnit: portion.label,
+      portionId: portion.id,
     };
   }
-  return { displayQuantity: ingredient.quantity, displayUnit: ingredient.unit };
+  return { displayQuantity: ingredient.quantity, displayUnit: food.referenceUnit };
 }
 
 /** Debounces a fast-changing value (e.g. the ingredient picker's search input). */
@@ -318,13 +324,17 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
       });
       setIngredients(
         items.map(({ ingredient, food }) => {
-          const { displayQuantity, displayUnit } = deriveIngredientDisplay(food, ingredient);
+          const { displayQuantity, displayUnit, portionId } = resolveIngredientDisplay(
+            food,
+            ingredient,
+          );
           return {
             tempId: ingredient.id,
             food,
             referenceQuantity: ingredient.quantity,
             displayQuantity,
             displayUnit,
+            portionId,
           };
         }),
       );
@@ -425,11 +435,19 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
   }
 
   function selectFoodForIngredient(food: Food) {
-    setSelectedFood(food);
     setQuantityMode('reference');
     setQuantityText('');
     setQuantityError(undefined);
     setPickerStep('quantity');
+    // The search results (foodRepository.search, above) intentionally don't carry `portions`
+    // (KCAL-163b: avoids stacking a second N+1 on the library search results). Paint
+    // immediately with what's already known, then upgrade to the full record -- including
+    // portions, needed for the "quick portion" quantity mode below -- once the one-off
+    // findById() for this single selection resolves.
+    setSelectedFood(food);
+    void foodRepository.findById(food.id).then((result) => {
+      if (result.ok) setSelectedFood(result.value);
+    });
   }
 
   function confirmAddIngredient() {
@@ -448,17 +466,17 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
       return;
     }
 
+    // The picker only offers a single quick-portion shortcut (the food's first portion by
+    // ascending `position`) -- a full N-portion picker is KCAL-164, out of scope here.
+    const firstPortion = quantityMode === 'servings' ? selectedFood.portions[0] : undefined;
+
     // Convert BEFORE storing: RecipeIngredient.quantity must always be reference-unit-equivalent
-    // (see convertServingsToReferenceQuantity's doc comment) -- this is the step that prevents
+    // (see convertPortionToReferenceQuantity's doc comment) -- this is the step that prevents
     // "portions" and reference-unit quantities from silently getting mixed at calculation time.
-    const referenceQuantity =
-      quantityMode === 'servings'
-        ? convertServingsToReferenceQuantity(selectedFood, parsed)
-        : parsed;
-    const displayUnit =
-      quantityMode === 'servings'
-        ? (selectedFood.servingUnit ?? selectedFood.referenceUnit)
-        : selectedFood.referenceUnit;
+    const referenceQuantity = firstPortion
+      ? convertPortionToReferenceQuantity(firstPortion, parsed)
+      : parsed;
+    const displayUnit = firstPortion ? firstPortion.label : selectedFood.referenceUnit;
 
     setIngredients((prev) => [
       ...prev,
@@ -468,6 +486,7 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
         referenceQuantity,
         displayQuantity: parsed,
         displayUnit,
+        portionId: firstPortion?.id,
       },
     ]);
 
@@ -501,6 +520,7 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
         foodId: draft.food.id,
         quantity: draft.referenceQuantity,
         unit: draft.displayUnit,
+        portionId: draft.portionId,
       })),
     };
 
@@ -790,7 +810,7 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
                 selected={quantityMode === 'reference'}
                 onPress={() => setQuantityMode('reference')}
               />
-              {selectedFood.servingQuantity !== undefined ? (
+              {selectedFood.portions.length > 0 ? (
                 <Chip
                   testID="recipeForm.ingredientPicker.mode.servings"
                   label={t('recipeForm.picker.modeServings')}
@@ -810,7 +830,7 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
                 }
                 unit={
                   quantityMode === 'servings'
-                    ? unitLabel(t, selectedFood.servingUnit ?? selectedFood.referenceUnit)
+                    ? unitLabel(t, selectedFood.portions[0]?.label ?? selectedFood.referenceUnit)
                     : unitLabel(t, selectedFood.referenceUnit)
                 }
                 value={quantityText}

@@ -5,6 +5,7 @@ import type {
   ActivityLevel,
   DiaryEntry,
   Food,
+  FoodPortion,
   NutritionValues,
   Recipe,
   RecipeIngredient,
@@ -23,18 +24,23 @@ export function calculateProportionalNutrition(food: Food, quantity: number): Nu
 }
 
 /**
- * Converts a quantity expressed in "servings" (e.g. "2 eggs") into the equivalent
- * quantity expressed in the food's reference unit (e.g. grams). `calculateProportionalNutrition`
- * computes `quantity / food.referenceQuantity` with no unit awareness at all, so
- * RecipeIngredient.quantity must already be in reference-unit terms by the time it's
- * stored -- when the recipe ingredient picker (KCAL-133) lets the user enter "portions"
- * instead of the reference unit, this conversion must happen BEFORE the write, not at
- * calculation time, or the ratio above silently mixes two different units.
- * Callers must only invoke this once `food.servingQuantity` is known to be defined
- * (the `?? 0` below is just a safe fallback, not a substitute for that guard).
+ * Converts a portion count (e.g. "2 pots") into the equivalent quantity expressed in the
+ * owning food's reference unit (e.g. grams). `FoodPortion.quantity` is already stored in
+ * those terms (KCAL-163a), so this is a plain multiply -- no per-portion unit conversion
+ * happens here.
+ *
+ * This is the Sprint 2 invariant, still fully valid post-KCAL-163: `calculateProportionalNutrition`
+ * has no unit awareness at all, so `RecipeIngredient.quantity` must already be
+ * reference-unit-equivalent by the time it's stored. When the recipe ingredient picker lets
+ * the user enter a count of portions instead of the reference unit directly, this conversion
+ * must happen BEFORE the write, never at calculation time, or the ratio in
+ * `calculateProportionalNutrition` silently mixes two different units.
+ *
+ * Replaces the Sprint 2 `convertServingsToReferenceQuantity`, which only supported a single
+ * serving-size shortcut per food (`Food.servingQuantity`/`servingUnit`, now deprecated).
  */
-export function convertServingsToReferenceQuantity(food: Food, servings: number): number {
-  return servings * (food.servingQuantity ?? 0);
+export function convertPortionToReferenceQuantity(portion: FoodPortion, count: number): number {
+  return count * portion.quantity;
 }
 
 /** RM03 */

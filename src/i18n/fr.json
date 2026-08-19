@@ -117,7 +117,10 @@
       "add": "+ Ajouter",
       "confirm": "Valider",
       "cancel": "Annuler",
-      "quantityLabel": "Quantité"
+      "labelField": "Nom de la portion",
+      "labelPlaceholder": "Ex. 1 pot",
+      "quantityLabel": "Quantité",
+      "deleteLabel": "Supprimer la portion {{label}}"
     },
     "preview": {
       "title": "Aperçu pour {{quantity}} {{unit}}",
