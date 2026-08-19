@@ -1,0 +1,48 @@
+# Reusable onboarding sub-flow: takes a freshly cleared app (no profile) through Welcome ->
+# ProfileSetup -> GoalSetup and leaves it on the Today tab, ready for a feature flow.
+#
+# Meant to be called via `runFlow` right after a `launchApp: { clearState: true }` -- it does not
+# launch the app itself. RootNavigator switches to the tabs on its own as soon as the profile
+# exists (it observes profileRepository.observe()), so there is no final "done" tap here.
+#
+# Sex and activity level are left on their defaults (female / light, see ProfileSetupScreen) --
+# the flow only fills what the form actually requires, so it stays robust if those controls move.
+appId: be.rogetconcept.kcalvi
+---
+- tapOn:
+    id: "onboarding.welcome.cta"
+
+- tapOn:
+    id: "onboarding.firstName"
+- inputText: "Maestro"
+- tapOn:
+    id: "onboarding.age"
+- inputText: "35"
+- tapOn:
+    id: "onboarding.height"
+- inputText: "180"
+- tapOn:
+    id: "onboarding.currentWeight"
+- inputText: "80"
+- tapOn:
+    id: "onboarding.targetWeight"
+- inputText: "75"
+# Dismiss the keyboard before reaching for the CTA at the bottom of the scroll view. `hideKeyboard`
+# is not supported by this custom NumberField (same limitation as in create-recipe.yaml), so tap a
+# static, non-interactive label instead: the ScrollView swallows that first tap to blur the field,
+# which takes the keypad with it. Without this, the keypad covers the CTA and absorbs the tap.
+#
+# The screen title specifically, and not a label nearer the CTA: the numeric keypad covers the
+# bottom ~35% of the screen, and everything under it ("Niveau d'activité" included) still shows up
+# in the accessibility hierarchy with real bounds, so Maestro happily "taps" it and hits the keypad.
+- tapOn: "Parle-moi de toi"
+- tapOn:
+    id: "onboarding.profileSetup.continue"
+
+# Weekly rate keeps its 0,5 kg default -- the goal figures are computed, not entered.
+- assertVisible: "Ton objectif"
+- tapOn:
+    id: "onboarding.goalSetup.createProfile"
+
+- assertVisible:
+    id: "today.greeting"

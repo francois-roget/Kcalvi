@@ -25,7 +25,14 @@ export function TodayScreen() {
   return (
     <Safe edges={['top', 'bottom']}>
       <Header>
-        {profile ? <Text variant="h2">{t('today.greeting', { name: profile.name })}</Text> : null}
+        {/* `today.greeting` is the smoke test's anchor: it only renders once the profile
+            observable has emitted, so asserting on it proves the data layer resolved, not just
+            that the tab bar mounted (see .maestro/smoke.yaml). */}
+        {profile ? (
+          <Text testID="today.greeting" variant="h2">
+            {t('today.greeting', { name: profile.name })}
+          </Text>
+        ) : null}
       </Header>
     </Safe>
   );

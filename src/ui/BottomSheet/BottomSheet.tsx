@@ -1,12 +1,5 @@
 import { useEffect, type PropsWithChildren } from 'react';
-import {
-  Dimensions,
-  Keyboard,
-  Modal,
-  Platform,
-  Pressable,
-  useWindowDimensions,
-} from 'react-native';
+import { Dimensions, Keyboard, Modal, Pressable, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from 'styled-components/native';
@@ -20,7 +13,7 @@ export type BottomSheetProps = PropsWithChildren<{
 
 const OFFSCREEN_Y = 600;
 
-// Fallback duration when the platform does not report one with the keyboard event (Android).
+// Fallback for the rare keyboard event that carries no animation duration of its own.
 const KEYBOARD_FALLBACK_DURATION = 220;
 
 // Clearance kept between the top of the sheet and the top of the screen. A constant rather than
@@ -40,44 +33,34 @@ export function BottomSheet({ visible, onClose, children }: BottomSheetProps) {
     progress.value = withTiming(visible ? 1 : 0, { duration: visible ? 280 : 200 });
   }, [visible, progress]);
 
-  // The sheet is absolutely positioned at the bottom of a full-screen Modal, so the iOS keyboard
+  // The sheet is absolutely positioned at the bottom of a full-screen Modal, so the keyboard
   // slides right over it. Track the keyboard frame and lift the sheet by the same amount.
+  //
+  // iOS-only, deliberately: the target platform is iOS 18+ (TECHNICAL_SPECS.MD §1) and
+  // `keyboardWillChangeFrame` does not fire on Android. Should Android ever join the target,
+  // this needs an equivalent branch on `keyboardDidShow`/`keyboardDidHide` (which report
+  // `endCoordinates.height` rather than a frame, and only *after* the animation), plus a real
+  // device or emulator to validate it on -- until then the sheet simply does not lift there.
   useEffect(() => {
     if (!visible) {
       return;
     }
 
     // The sheet stays mounted between openings, so start each one flush with the bottom of the
-    // screen; the listeners below lift it again if the keyboard shows up.
+    // screen; the listener below lifts it again if the keyboard shows up.
     keyboardHeight.value = 0;
 
-    const applyHeight = (height: number, duration: number) => {
-      keyboardHeight.value = withTiming(height, { duration });
-    };
-
-    if (Platform.OS === 'ios') {
-      // `keyboardWillChangeFrame` covers show, hide and interactive dismissal in one event, and
-      // carries the native animation duration so the sheet stays in sync with the keyboard.
-      const subscription = Keyboard.addListener('keyboardWillChangeFrame', (event) => {
-        const screenHeight = Dimensions.get('screen').height;
-        const visibleHeight = Math.max(0, screenHeight - event.endCoordinates.screenY);
-        applyHeight(visibleHeight, event.duration || KEYBOARD_FALLBACK_DURATION);
+    // `keyboardWillChangeFrame` covers show, hide and interactive dismissal in one event, and
+    // carries the native animation duration so the sheet stays in sync with the keyboard.
+    const subscription = Keyboard.addListener('keyboardWillChangeFrame', (event) => {
+      const screenHeight = Dimensions.get('screen').height;
+      const visibleHeight = Math.max(0, screenHeight - event.endCoordinates.screenY);
+      keyboardHeight.value = withTiming(visibleHeight, {
+        duration: event.duration || KEYBOARD_FALLBACK_DURATION,
       });
-
-      return () => subscription.remove();
-    }
-
-    const showSubscription = Keyboard.addListener('keyboardDidShow', (event) => {
-      applyHeight(event.endCoordinates.height, event.duration || KEYBOARD_FALLBACK_DURATION);
-    });
-    const hideSubscription = Keyboard.addListener('keyboardDidHide', (event) => {
-      applyHeight(0, event.duration || KEYBOARD_FALLBACK_DURATION);
     });
 
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
+    return () => subscription.remove();
   }, [visible, keyboardHeight]);
 
   const overlayStyle = useAnimatedStyle(() => ({ opacity: progress.value }));

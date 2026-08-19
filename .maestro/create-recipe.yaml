@@ -1,12 +1,13 @@
 # Sprint 2 (Recettes) E2E flow — TECHNICAL_SPECS.MD §16.2 lists "créer une recette" among the
 # 4 critical Maestro flows for the MVP acceptance criteria (§38).
 #
-# Self-contained: creates its own prerequisite Food rather than depending on library state left
-# by another flow or manual testing, so it can run standalone. Not idempotent — WatermelonDB has
-# no per-run reset in this project yet (open point, TECHNICAL_SPECS.MD §20), so re-running this
-# flow without clearing app state creates a new "Poulet Maestro E2E" food and "Recette Maestro
-# E2E" recipe each time. Assumes onboarding/profile setup has already run once on the target
-# device, same assumption as smoke.yaml (`assertVisible: "Aujourd'hui"` right after launch).
+# Self-contained and idempotent: `clearState` wipes the app's data (WatermelonDB's SQLite file
+# included) so every run starts from a just-installed app, then onboarding.yaml recreates the
+# profile the tabs need. Nothing is assumed about the device's prior state, and repeated runs no
+# longer pile up duplicate "Poulet Maestro E2E" foods and "Recette Maestro E2E" recipes.
+#
+# This is deliberately a state *reset*, not seed data -- fixtures for development remain an open
+# question (TECHNICAL_SPECS.MD §20), and nothing here presumes an answer to it.
 #
 # Fixed 2026-08-19 (was reported 2026-08-18 as "typing in `recipeForm.ingredientPicker.searchField`
 # closes the BottomSheet"): the sheet was never closing, it was hidden *behind* the iOS keyboard.
@@ -16,21 +17,52 @@
 # Watch this step if it regresses: a failure here means the sheet is off-screen, not unmounted.
 appId: be.rogetconcept.kcalvi
 ---
-- launchApp
-# Wildcard: the TabBar merges the Ionicons glyph and the label into one accessibility element
-# once the icon font finishes loading ("<icon-glyph>, Aujourd'hui"), which makes a plain exact
-# match flaky depending on how far app boot has progressed by the time this check runs.
-- assertVisible: ".*Aujourd'hui.*"
+- launchApp:
+    clearState: true
+
+# Development-build detour, skipped entirely on a standalone/EAS build (where the launcher never
+# appears and the JS bundle is embedded): `clearState` wipes the whole app container, and on a
+# dev build that container also holds the dev client's saved dev-server URL. Without it the app
+# boots into the dev client's own launcher instead of Kcalvi, so it is reconnected by deep link
+# (`exp+kcalvi` is registered by expo-dev-client, see the app's CFBundleURLTypes). The generous
+# wait covers Metro rebuilding and shipping the bundle; the dev-menu hint that follows is shown
+# on the first launch after a state wipe, i.e. every run.
+- runFlow:
+    when:
+      visible: "Development Build"
+    commands:
+      - openLink: "exp+kcalvi://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081"
+      - extendedWaitUntil:
+          visible: "Continue"
+          timeout: 120000
+      # "Continue" only dismisses the explanatory bubble and leaves the dev menu itself open
+      # on top of the app, so it has to be closed too before Kcalvi is reachable.
+      - tapOn: "Continue"
+      - tapOn: "Close"
+      # Drag the floating dev-tools bubble out of the header zone. A state wipe resets it to the
+      # top-right corner, right on top of the app's header actions, where it swallowed the tap on
+      # "Enregistrer" and opened the dev menu instead of saving. Bottom-left is where it sits by
+      # default once moved, and it overlaps nothing this flow taps. (The dev menu's own "Tools
+      # button" toggle looks like the cleaner fix, but tapping that row only closes the menu --
+      # the bubble stays.)
+      - swipe:
+          start: "90%, 12%"
+          end: "12%, 88%"
+
+- runFlow: onboarding.yaml
 # Plain "Bibliothèque" doesn't match: the tab's Ionicons glyph + label are merged into one
 # accessibility element by iOS ("<icon-glyph>, Bibliothèque"), and `tapOn`'s text selector
 # requires a full match -- a wildcard regex works around it.
 - tapOn: ".*Bibliothèque.*"
-- assertVisible:
-    id: "library.addButton"
-
 # Prerequisite: a Food to use as the recipe's ingredient (KCAL-109..118, Sprint 1).
+#
+# The empty-state CTA, not the header's `library.addButton`: the run starts from a cleared app, so
+# the library is always empty here and LibraryScreen renders LibraryEmptyState instead of its
+# header actions (KCAL-108). The header buttons come back further down, once this food exists.
+- assertVisible:
+    id: "library.empty.primaryCta"
 - tapOn:
-    id: "library.addButton"
+    id: "library.empty.primaryCta"
 - tapOn:
     id: "foodForm.name"
 - inputText: "Poulet Maestro E2E"

@@ -1,8 +1,16 @@
-# Wildcard rather than an exact `"Aujourd'hui"` match: once the Ionicons font finishes loading,
-# the TabBar merges the icon glyph and the label into a single accessibility element
-# ("<icon-glyph>, Aujourd'hui"), so an exact match only passes while the font is still loading —
-# i.e. it passes on a cold launch and fails on a warm one. Same workaround as create-recipe.yaml.
+# Two assertions on purpose, and in this order, so a failure says which layer broke:
+#   - `today.greeting` only renders once the profile observable has emitted, so it proves the
+#     app booted *and* the data layer resolved -- the actual point of a smoke test.
+#   - the tab label proves the tab bar rendered. Wildcard rather than an exact match: once the
+#     Ionicons font finishes loading, the TabBar merges the icon glyph and the label into a
+#     single accessibility element ("<icon-glyph>, Aujourd'hui"), so an exact match only passes
+#     while the font is still loading -- i.e. on a cold launch but not a warm one.
+#
+# Assumes onboarding has already run once on the target device (see create-recipe.yaml, which
+# clears state and runs onboarding.yaml itself).
 appId: be.rogetconcept.kcalvi
 ---
 - launchApp
+- assertVisible:
+    id: "today.greeting"
 - assertVisible: ".*Aujourd'hui.*"

@@ -185,6 +185,7 @@ export function GoalSetupScreen({ route, navigation }: GoalSetupScreenProps) {
           </InfoBox>
 
           <Button
+            testID="onboarding.goalSetup.createProfile"
             label={t('onboarding.goalSetup.createProfile')}
             onPress={handleCreateProfile}
             disabled={submitting}

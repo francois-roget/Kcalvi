@@ -238,7 +238,11 @@ export function ProfileSetupScreen({ navigation }: ProfileSetupScreenProps) {
             ))}
           </ListCard>
 
-          <Button label={t('onboarding.profileSetup.continue')} onPress={handleContinue} />
+          <Button
+            testID="onboarding.profileSetup.continue"
+            label={t('onboarding.profileSetup.continue')}
+            onPress={handleContinue}
+          />
         </Content>
       </ScrollView>
     </Safe>

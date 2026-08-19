@@ -101,6 +101,7 @@ export function WelcomeScreen({ navigation }: WelcomeScreenProps) {
       <Footer>
         <FullWidth>
           <Button
+            testID="onboarding.welcome.cta"
             label={t('onboarding.welcome.cta')}
             variant="onDark"
             onPress={() => navigation.navigate('ProfileSetup')}
