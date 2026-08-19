@@ -41,7 +41,10 @@ export function Button({
             height,
             backgroundColor,
             borderRadius: theme.radius.lg,
-            paddingHorizontal: theme.spacing[6],
+            // Full-width buttons (lg) keep the wider padding from the design handoff;
+            // constrained ones (md, e.g. side-by-side action rows) need more room for
+            // the label so it doesn't wrap (see KCAL-154).
+            paddingHorizontal: size === 'lg' ? theme.spacing[6] : theme.spacing[4],
             opacity: disabled ? 0.45 : 1,
           },
         ];
@@ -58,6 +61,9 @@ export function Button({
                 ? { color: textColor, fontFamily: 'Manrope_700Bold', fontSize: 13 }
                 : { color: textColor }
             }
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
           >
             {label}
           </Text>
