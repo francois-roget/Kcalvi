@@ -5,8 +5,8 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import styled, { useTheme } from 'styled-components/native';
 
-import { foodRepository } from '@/data/repositories';
-import type { Food, Result } from '@/domain/types';
+import { foodRepository, recipeRepository } from '@/data/repositories';
+import type { Food, Recipe, RecipeIngredient, Result } from '@/domain/types';
 import { checkFoodDeletable } from '@/domain/validation';
 import { useObservable } from '@/hooks/useObservable';
 import type { LibraryScreenProps } from '@/navigation/types';
@@ -29,6 +29,8 @@ type FilterKey = 'all' | 'favorites' | 'foods' | 'recipes';
 const FILTERS: FilterKey[] = ['all', 'favorites', 'foods', 'recipes'];
 
 const EMPTY_FOODS: Food[] = [];
+const EMPTY_RECIPES: Recipe[] = [];
+const EMPTY_USAGES: RecipeIngredient[] = [];
 
 type FoodInUseError = { code: 'FOOD_IN_USE'; message: string; recipeIds: string[] };
 type Deletability = Result<void, FoodInUseError> | null;
@@ -198,6 +200,64 @@ function FoodListItem({ food, onPress, onToggleFavorite, onDeletePress }: FoodLi
   );
 }
 
+type RecipeListItemProps = {
+  recipe: Recipe;
+  onPress: () => void;
+  onToggleFavorite: () => void;
+};
+
+/**
+ * KCAL-142/144 — Card light item: tap navigates to the recipe detail, tap ★
+ * toggles favorite inline (same nested-Pressable pattern as `FoodListItem`
+ * so the star tap never also triggers the outer card's onPress).
+ */
+function RecipeListItem({ recipe, onPress, onToggleFavorite }: RecipeListItemProps) {
+  const { t } = useTranslation();
+  const theme = useTheme() as Theme;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      testID={`library.recipeCard.${recipe.id}`}
+      onPress={onPress}
+    >
+      <Card tone="light">
+        <FoodCardRow>
+          <View style={{ flexShrink: 1, paddingRight: 12 }}>
+            <Text variant="body" color="text.primary">
+              {recipe.name}
+            </Text>
+            <Text variant="caption" color="text.tertiary" style={{ marginTop: 2 }}>
+              {t('library.recipe.servings', { count: recipe.servings })}
+            </Text>
+          </View>
+
+          <FoodCardActions>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                recipe.isFavorite
+                  ? t('library.recipe.removeFavorite', { name: recipe.name })
+                  : t('library.recipe.addFavorite', { name: recipe.name })
+              }
+              accessibilityState={{ selected: recipe.isFavorite }}
+              hitSlop={10}
+              testID={`library.recipeCard.${recipe.id}.favorite`}
+              onPress={onToggleFavorite}
+            >
+              <Ionicons
+                name={recipe.isFavorite ? 'star' : 'star-outline'}
+                size={20}
+                color={recipe.isFavorite ? theme.colors.azure[400] : theme.colors.text.disabled}
+              />
+            </Pressable>
+          </FoodCardActions>
+        </FoodCardRow>
+      </Card>
+    </Pressable>
+  );
+}
+
 type DeleteFoodSheetProps = {
   food: Food | null;
   deletability: Deletability;
@@ -207,11 +267,11 @@ type DeleteFoodSheetProps = {
 };
 
 /**
- * KCAL-119 — "Annuler / Archiver / Supprimer quand même" (RM15).
- * `deletability` is computed from `checkFoodDeletable`; since `RecipeRepository`
- * doesn't exist yet this sprint the caller always passes an empty usages array,
- * so the "in use" branch below is implemented but not reachable in practice
- * this sprint (see SPRINT1-DETAILS.MD section D).
+ * KCAL-119/145 — "Annuler / Archiver / Supprimer quand même" (RM15).
+ * `deletability` is computed from `checkFoodDeletable` against the real
+ * `RecipeIngredient[]` usages fetched via `recipeRepository.findUsagesByFoodId`
+ * (see the `foodUsages` effect below), so the "in use" branch is reachable
+ * whenever the food is referenced by a recipe.
  */
 function DeleteFoodSheet({
   food,
@@ -330,14 +390,20 @@ export function LibraryScreen({ navigation }: LibraryScreenProps) {
   const searchObservable = useMemo(() => foodRepository.search(debouncedQuery), [debouncedQuery]);
   const foods = useObservable(searchObservable, EMPTY_FOODS);
 
+  // KCAL-142 — same stable-Observable pattern as foods, sharing the single
+  // search field (RecipeRepository.search is name-based, like foodRepository.search).
+  const recipeSearchObservable = useMemo(
+    () => recipeRepository.search(debouncedQuery),
+    [debouncedQuery],
+  );
+  const recipes = useObservable(recipeSearchObservable, EMPTY_RECIPES);
+
   // KCAL-108: the true empty-library state only applies to a fresh library
   // (no search in progress), not to "no results for this search".
-  const isLibraryEmpty = foods.length === 0 && debouncedQuery.trim() === '';
+  const isLibraryEmpty = foods.length === 0 && recipes.length === 0 && debouncedQuery.trim() === '';
 
   // KCAL-104 — client-side filtering of the observed result (decided in
-  // KCAL-101: no repository-level favorites param). "Recettes" has no data
-  // source yet (Sprint 2), so that chip's results are always empty this
-  // sprint — expected, not a bug.
+  // KCAL-101: no repository-level favorites param).
   const filteredFoods = useMemo(() => {
     switch (selectedFilter) {
       case 'favorites':
@@ -351,23 +417,74 @@ export function LibraryScreen({ navigation }: LibraryScreenProps) {
     }
   }, [foods, selectedFilter]);
 
-  // KCAL-105 — HeroCard counts reflect the current (searched) result set.
+  // KCAL-143 — mirrors `filteredFoods`: the "Aliments" chip hides recipes,
+  // the "Favoris" chip applies to recipes too.
+  const filteredRecipes = useMemo(() => {
+    switch (selectedFilter) {
+      case 'favorites':
+        return recipes.filter((recipe) => recipe.isFavorite);
+      case 'foods':
+        return [];
+      case 'recipes':
+      case 'all':
+      default:
+        return recipes;
+    }
+  }, [recipes, selectedFilter]);
+
+  // KCAL-105/143 — HeroCard counts reflect the current (searched) result set.
   const counts = useMemo(
     () => ({
       foods: foods.length,
-      recipes: 0, // No RecipeRepository yet this sprint.
+      recipes: recipes.length,
       favorites: foods.filter((food) => food.isFavorite).length,
     }),
-    [foods],
+    [foods, recipes],
   );
 
+  // KCAL-145 — `findUsagesByFoodId` is async, so the deletability check can no
+  // longer be a pure useMemo: fetch usages when the pending-deletion food
+  // changes, then derive `deletability` from that state. `cancelled` guards
+  // against setting state from a stale request if the food changes (or the
+  // sheet is dismissed) before the query resolves.
+  const [foodUsages, setFoodUsages] = useState<RecipeIngredient[]>(EMPTY_USAGES);
+
+  useEffect(() => {
+    // No reset-to-empty branch needed: `deletability` below already returns
+    // `null` whenever `foodPendingDeletion` is null, regardless of stale
+    // `foodUsages` from a previous dialog — avoids a synchronous setState
+    // in the effect body for the "no pending deletion" case.
+    if (!foodPendingDeletion) return;
+
+    let cancelled = false;
+    recipeRepository.findUsagesByFoodId(foodPendingDeletion.id).then((usages) => {
+      if (!cancelled) setFoodUsages(usages);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [foodPendingDeletion]);
+
   const deletability = useMemo<Deletability>(
-    () => (foodPendingDeletion ? checkFoodDeletable(foodPendingDeletion.id, []) : null),
-    [foodPendingDeletion],
+    () => (foodPendingDeletion ? checkFoodDeletable(foodPendingDeletion.id, foodUsages) : null),
+    [foodPendingDeletion, foodUsages],
   );
 
   function handleCreatePress() {
     navigation.navigate('FoodForm');
+  }
+
+  function handleCreateRecipePress() {
+    navigation.navigate('RecipeForm');
+  }
+
+  function handleRecipePress(recipeId: string) {
+    navigation.navigate('RecipeDetail', { recipeId });
+  }
+
+  async function handleToggleRecipeFavorite(recipe: Recipe) {
+    await recipeRepository.update(recipe.id, { isFavorite: !recipe.isFavorite });
   }
 
   function handleFoodPress(foodId: string) {
@@ -486,14 +603,42 @@ export function LibraryScreen({ navigation }: LibraryScreenProps) {
           </HeroCard>
 
           <SectionBlock>
-            <Text variant="overline" color="text.tertiary">
-              {t('library.sections.recipes')}
-            </Text>
-            {/* KCAL-107: no recipe data source yet (Sprint 2) — section stays
-                empty this sprint, layout is not blocked on it. */}
-            <Text variant="bodySm" color="text.tertiary">
-              {t('library.sections.recipesComingSoon')}
-            </Text>
+            <HeaderRow>
+              <Text variant="overline" color="text.tertiary">
+                {t('library.sections.recipes')}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('library.addRecipeButtonLabel')}
+                hitSlop={8}
+                testID="library.addRecipeButton"
+                onPress={handleCreateRecipePress}
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: theme.colors.ink[800],
+                }}
+              >
+                <Ionicons name="add" size={14} color="#FFFFFF" />
+              </Pressable>
+            </HeaderRow>
+            {filteredRecipes.length === 0 ? (
+              <Text variant="bodySm" color="text.tertiary">
+                {t('library.list.noResults')}
+              </Text>
+            ) : (
+              filteredRecipes.map((recipe) => (
+                <RecipeListItem
+                  key={recipe.id}
+                  recipe={recipe}
+                  onPress={() => handleRecipePress(recipe.id)}
+                  onToggleFavorite={() => handleToggleRecipeFavorite(recipe)}
+                />
+              ))
+            )}
           </SectionBlock>
 
           <SectionBlock>

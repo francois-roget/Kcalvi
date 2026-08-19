@@ -5,7 +5,7 @@ import { ThemeProvider } from 'styled-components/native';
 
 import '@/i18n';
 
-import type { Food } from '@/domain/types';
+import type { Food, Recipe } from '@/domain/types';
 import { ok } from '@/domain/types/result';
 import type { LibraryScreenProps } from '@/navigation/types';
 import { theme } from '@/ui/theme';
@@ -63,6 +63,9 @@ const mockSearch = jest.fn();
 const mockUpdate = jest.fn();
 const mockDelete = jest.fn();
 const mockArchive = jest.fn();
+const mockRecipeSearch = jest.fn();
+const mockRecipeUpdate = jest.fn();
+const mockFindUsagesByFoodId = jest.fn();
 
 jest.mock('@/data/repositories', () => ({
   foodRepository: {
@@ -72,6 +75,15 @@ jest.mock('@/data/repositories', () => ({
     archive: (id: string) => mockArchive(id),
     findById: jest.fn(),
     create: jest.fn(),
+  },
+  recipeRepository: {
+    search: (query: string) => mockRecipeSearch(query),
+    update: (id: string, input: unknown) => mockRecipeUpdate(id, input),
+    findUsagesByFoodId: (foodId: string) => mockFindUsagesByFoodId(foodId),
+    findById: jest.fn(),
+    create: jest.fn(),
+    archive: jest.fn(),
+    delete: jest.fn(),
   },
 }));
 
@@ -87,6 +99,18 @@ function makeFood(overrides: Partial<Food> = {}): Food {
     referenceUnit: 'g',
     isFavorite: false,
     isArchived: false,
+    createdAt: new Date('2026-01-01'),
+    updatedAt: new Date('2026-01-01'),
+    ...overrides,
+  };
+}
+
+function makeRecipe(overrides: Partial<Recipe> = {}): Recipe {
+  return {
+    id: 'recipe-1',
+    name: 'Salade de quinoa',
+    servings: 2,
+    isFavorite: false,
     createdAt: new Date('2026-01-01'),
     updatedAt: new Date('2026-01-01'),
     ...overrides,
@@ -117,14 +141,19 @@ async function renderLibraryScreen() {
 
 describe('LibraryScreen', () => {
   let foodsSubject: BehaviorSubject<Food[]>;
+  let recipesSubject: BehaviorSubject<Recipe[]>;
 
   beforeEach(() => {
     jest.clearAllMocks();
     foodsSubject = new BehaviorSubject<Food[]>([]);
+    recipesSubject = new BehaviorSubject<Recipe[]>([]);
     mockSearch.mockImplementation(() => foodsSubject);
     mockUpdate.mockResolvedValue(ok(makeFood()));
     mockDelete.mockResolvedValue(ok(undefined));
     mockArchive.mockResolvedValue(ok(undefined));
+    mockRecipeSearch.mockImplementation(() => recipesSubject);
+    mockRecipeUpdate.mockResolvedValue(ok(makeRecipe()));
+    mockFindUsagesByFoodId.mockResolvedValue([]);
   });
 
   it('shows the empty-library state (KCAL-108) when there are no foods and no search', async () => {
@@ -189,14 +218,66 @@ describe('LibraryScreen', () => {
     expect(screen.getByText('Yaourt nature')).toBeTruthy();
   });
 
-  it('the Recettes chip always yields an empty food list this sprint (no data source yet)', async () => {
+  it('the Recettes chip hides foods but keeps recipes (KCAL-143)', async () => {
     foodsSubject.next([makeFood({ id: 'food-1', name: 'Pomme' })]);
+    recipesSubject.next([makeRecipe({ id: 'recipe-1', name: 'Salade de quinoa' })]);
     await renderLibraryScreen();
 
     await fireEvent.press(screen.getByTestId('library.filter.recipes'));
 
     expect(screen.queryByText('Pomme')).toBeNull();
-    expect(screen.getByText('Aucun résultat')).toBeTruthy();
+    expect(screen.getByText('Salade de quinoa')).toBeTruthy();
+  });
+
+  it('renders the recipe list from the observed search result (KCAL-142)', async () => {
+    recipesSubject.next([makeRecipe({ id: 'recipe-1', name: 'Salade de quinoa', servings: 2 })]);
+
+    await renderLibraryScreen();
+
+    expect(screen.getByText('Salade de quinoa')).toBeTruthy();
+  });
+
+  it('tapping a recipe card navigates to RecipeDetail with the recipeId (KCAL-142)', async () => {
+    recipesSubject.next([makeRecipe({ id: 'recipe-1', name: 'Salade de quinoa' })]);
+    const { navigation } = await renderLibraryScreen();
+
+    await fireEvent.press(screen.getByTestId('library.recipeCard.recipe-1'));
+
+    expect(navigation.navigate).toHaveBeenCalledWith('RecipeDetail', { recipeId: 'recipe-1' });
+  });
+
+  it('the "+" button on the Recettes section navigates to RecipeForm in create mode', async () => {
+    recipesSubject.next([makeRecipe({ id: 'recipe-1', name: 'Salade de quinoa' })]);
+    const { navigation } = await renderLibraryScreen();
+
+    await fireEvent.press(screen.getByTestId('library.addRecipeButton'));
+
+    expect(navigation.navigate).toHaveBeenCalledWith('RecipeForm');
+  });
+
+  it('toggles recipe favorite inline via recipeRepository.update on star tap (KCAL-144)', async () => {
+    recipesSubject.next([
+      makeRecipe({ id: 'recipe-1', name: 'Salade de quinoa', isFavorite: false }),
+    ]);
+    await renderLibraryScreen();
+
+    await fireEvent.press(screen.getByTestId('library.recipeCard.recipe-1.favorite'));
+
+    await waitFor(() => {
+      expect(mockRecipeUpdate).toHaveBeenCalledWith('recipe-1', { isFavorite: true });
+    });
+  });
+
+  it('the HeroCard recipe count reflects the observed recipe search result (KCAL-143)', async () => {
+    recipesSubject.next([
+      makeRecipe({ id: 'recipe-1', name: 'Salade de quinoa' }),
+      makeRecipe({ id: 'recipe-2', name: 'Soupe de potiron' }),
+    ]);
+
+    await renderLibraryScreen();
+
+    // Hero: 0 aliments, 2 recettes, 0 favoris.
+    expect(screen.getAllByText('2').length).toBeGreaterThan(0);
   });
 
   it('toggles favorite inline via foodRepository.update on star tap (KCAL-106)', async () => {
@@ -239,5 +320,26 @@ describe('LibraryScreen', () => {
     await fireEvent.press(screen.getByTestId('library.deleteDialog.cancel'));
 
     expect(mockDelete).not.toHaveBeenCalled();
+  });
+
+  it('shows the "in use" branch (Archiver) when the food is referenced by a recipe (KCAL-145)', async () => {
+    foodsSubject.next([makeFood({ id: 'food-1', name: 'Pomme' })]);
+    mockFindUsagesByFoodId.mockResolvedValue([
+      { id: 'ri-1', recipeId: 'recipe-1', foodId: 'food-1', quantity: 100, unit: 'g' },
+    ]);
+    await renderLibraryScreen();
+
+    await fireEvent.press(screen.getByTestId('library.foodCard.food-1.delete'));
+
+    await waitFor(() => {
+      expect(mockFindUsagesByFoodId).toHaveBeenCalledWith('food-1');
+      expect(screen.getByTestId('library.deleteDialog.archive')).toBeTruthy();
+    });
+
+    await fireEvent.press(screen.getByTestId('library.deleteDialog.archive'));
+
+    await waitFor(() => {
+      expect(mockArchive).toHaveBeenCalledWith('food-1');
+    });
   });
 });

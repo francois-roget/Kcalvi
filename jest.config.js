@@ -1,4 +1,17 @@
 module.exports = {
+  // Press "e" in --watch/--watchAll mode to toggle coverage collection on/off (default key
+  // for `collectCoverage` from this plugin -- off by default so watch mode stays fast on
+  // every keystroke-triggered run; coverage is only computed on demand).
+  watchPlugins: [['jest-watch-toggle-config', { setting: 'collectCoverage' }]],
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/**/*.test.{ts,tsx}',
+    '!src/**/*.dbtest.ts',
+    '!src/**/index.ts',
+    '!src/i18n/**',
+  ],
+  coverageDirectory: '<rootDir>/coverage',
   projects: [
     {
       displayName: 'App',

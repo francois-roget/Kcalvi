@@ -13,6 +13,7 @@ import {
   calculateTDEE,
   calculateWeeklyBudget,
   calculateWeeklyNetConsumption,
+  convertServingsToReferenceQuantity,
   getWeekBoundaries,
 } from './index';
 
@@ -48,6 +49,23 @@ describe('calculateProportionalNutrition (RM02)', () => {
       carbs: 0,
       fat: 0,
     });
+  });
+});
+
+describe('convertServingsToReferenceQuantity', () => {
+  it('converts a serving count into the equivalent reference-unit quantity', () => {
+    const eggFood: Food = { ...food, servingQuantity: 60, servingUnit: 'oeuf' };
+
+    expect(convertServingsToReferenceQuantity(eggFood, 2)).toBe(120);
+  });
+
+  it('falls back to 0 (via the `?? 0` guard) when servingQuantity is undefined', () => {
+    // `food` has no servingQuantity. The function itself falls back to 0 rather than
+    // throwing; per its doc comment, callers are responsible for only invoking it once
+    // `food.servingQuantity` is known to be defined -- this test documents the fallback
+    // as implemented, not as a recommended call pattern.
+    expect(food.servingQuantity).toBeUndefined();
+    expect(convertServingsToReferenceQuantity(food, 3)).toBe(0);
   });
 });
 

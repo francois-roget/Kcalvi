@@ -1,4 +1,8 @@
+# Wildcard rather than an exact `"Aujourd'hui"` match: once the Ionicons font finishes loading,
+# the TabBar merges the icon glyph and the label into a single accessibility element
+# ("<icon-glyph>, Aujourd'hui"), so an exact match only passes while the font is still loading —
+# i.e. it passes on a cold launch and fails on a warm one. Same workaround as create-recipe.yaml.
 appId: be.rogetconcept.kcalvi
 ---
 - launchApp
-- assertVisible: "Aujourd'hui"
+- assertVisible: ".*Aujourd'hui.*"

@@ -131,8 +131,98 @@
       "generic": "Une erreur est survenue. Réessaie."
     }
   },
+  "recipeForm": {
+    "header": {
+      "cancel": "Annuler",
+      "createTitle": "Nouvelle recette",
+      "editTitle": "Modifier la recette",
+      "save": "Enregistrer"
+    },
+    "loading": "Chargement…",
+    "loadError": "Impossible de charger cette recette.",
+    "name": "Nom",
+    "namePlaceholder": "Ex. Salade de quinoa",
+    "servings": "Portions",
+    "totalWeight": "Poids total",
+    "totalWeightMixedHint": "Non calculable : les ingrédients utilisent des unités différentes.",
+    "ingredients": {
+      "title": "Ingrédients",
+      "empty": "Aucun ingrédient pour l'instant.",
+      "kcalValue": "{{value}} kcal",
+      "deleteLabel": "Supprimer {{name}}"
+    },
+    "addIngredient": "+ Ajouter un ingrédient",
+    "perPortion": {
+      "title": "Par portion (calcul auto)",
+      "kcalValue": "{{value}} kcal",
+      "protein": "Protéines",
+      "carbs": "Glucides",
+      "fat": "Lipides"
+    },
+    "errors": {
+      "nameRequired": "Le nom est obligatoire.",
+      "servingsInvalid": "Le nombre de portions doit être supérieur à 0.",
+      "noIngredients": "Ajoutez au moins un ingrédient.",
+      "negativeValue": "La quantité ne peut pas être négative.",
+      "invalidNumber": "Veuillez entrer un nombre valide.",
+      "notFound": "Cette recette est introuvable.",
+      "generic": "Une erreur est survenue. Réessaie."
+    },
+    "submit": "Enregistrer la recette",
+    "picker": {
+      "searchTitle": "Choisir un aliment",
+      "searchPlaceholder": "Rechercher un aliment…",
+      "noResults": "Aucun aliment trouvé.",
+      "modeReference": "Par {{unit}}",
+      "modeServings": "En portions",
+      "quantityLabel": "Quantité",
+      "servingsLabel": "Nombre de portions",
+      "cancel": "Annuler",
+      "confirm": "Ajouter"
+    },
+    "units": {
+      "g": "g",
+      "ml": "ml",
+      "unit": "unité"
+    }
+  },
+  "recipeDetail": {
+    "loading": "Chargement de la recette…",
+    "notFoundError": "Recette introuvable.",
+    "header": {
+      "backLabel": "Retour",
+      "edit": "Modifier"
+    },
+    "subtitle": {
+      "portions_one": "{{count}} portion",
+      "portions_other": "{{count}} portions",
+      "favorite": "Favori"
+    },
+    "perPortion": {
+      "title": "Par portion",
+      "kcalLabel": "kcal",
+      "macroProtein": "P {{value}} g",
+      "macroCarbs": "G {{value}} g",
+      "macroFat": "L {{value}} g"
+    },
+    "ingredients": {
+      "sectionTitle": "Ingrédients",
+      "kcalValue": "{{value}} kcal",
+      "totalLabel": "Total recette"
+    },
+    "actions": {
+      "duplicate": "Dupliquer",
+      "addToMeal": "Ajouter au repas",
+      "addToMealHint": "Disponible à partir du sprint 3, avec le journal des repas."
+    },
+    "duplicate": {
+      "copyName": "{{name}} (copie)",
+      "error": "Impossible de dupliquer cette recette. Réessaie."
+    }
+  },
   "library": {
     "addButtonLabel": "Créer un aliment",
+    "addRecipeButtonLabel": "Créer une recette",
     "searchPlaceholder": "Rechercher un aliment ou une marque",
     "filters": {
       "all": "Tout",
@@ -157,6 +247,12 @@
       "addFavorite": "Ajouter {{name}} aux favoris",
       "removeFavorite": "Retirer {{name}} des favoris",
       "deleteLabel": "Supprimer {{name}}"
+    },
+    "recipe": {
+      "servings_one": "{{count}} portion",
+      "servings_other": "{{count}} portions",
+      "addFavorite": "Ajouter {{name}} aux favoris",
+      "removeFavorite": "Retirer {{name}} des favoris"
     },
     "empty": {
       "title": "Ta bibliothèque est vide",

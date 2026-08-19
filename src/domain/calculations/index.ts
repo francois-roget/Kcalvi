@@ -22,6 +22,21 @@ export function calculateProportionalNutrition(food: Food, quantity: number): Nu
   };
 }
 
+/**
+ * Converts a quantity expressed in "servings" (e.g. "2 eggs") into the equivalent
+ * quantity expressed in the food's reference unit (e.g. grams). `calculateProportionalNutrition`
+ * computes `quantity / food.referenceQuantity` with no unit awareness at all, so
+ * RecipeIngredient.quantity must already be in reference-unit terms by the time it's
+ * stored -- when the recipe ingredient picker (KCAL-133) lets the user enter "portions"
+ * instead of the reference unit, this conversion must happen BEFORE the write, not at
+ * calculation time, or the ratio above silently mixes two different units.
+ * Callers must only invoke this once `food.servingQuantity` is known to be defined
+ * (the `?? 0` below is just a safe fallback, not a substitute for that guard).
+ */
+export function convertServingsToReferenceQuantity(food: Food, servings: number): number {
+  return servings * (food.servingQuantity ?? 0);
+}
+
 /** RM03 */
 export function calculateRecipeTotals(
   _recipe: Recipe,

@@ -1,0 +1,119 @@
+# Sprint 2 (Recettes) E2E flow — TECHNICAL_SPECS.MD §16.2 lists "créer une recette" among the
+# 4 critical Maestro flows for the MVP acceptance criteria (§38).
+#
+# Self-contained: creates its own prerequisite Food rather than depending on library state left
+# by another flow or manual testing, so it can run standalone. Not idempotent — WatermelonDB has
+# no per-run reset in this project yet (open point, TECHNICAL_SPECS.MD §20), so re-running this
+# flow without clearing app state creates a new "Poulet Maestro E2E" food and "Recette Maestro
+# E2E" recipe each time. Assumes onboarding/profile setup has already run once on the target
+# device, same assumption as smoke.yaml (`assertVisible: "Aujourd'hui"` right after launch).
+#
+# Fixed 2026-08-19 (was reported 2026-08-18 as "typing in `recipeForm.ingredientPicker.searchField`
+# closes the BottomSheet"): the sheet was never closing, it was hidden *behind* the iOS keyboard.
+# `BottomSheet` positions the sheet at `bottom: 0` inside a full-screen `Modal`, and nothing lifted
+# it when the keyboard came up, so the screenshots showed the bare form underneath. The sheet now
+# tracks the keyboard frame and translates up by its height (`src/ui/BottomSheet/BottomSheet.tsx`).
+# Watch this step if it regresses: a failure here means the sheet is off-screen, not unmounted.
+appId: be.rogetconcept.kcalvi
+---
+- launchApp
+# Wildcard: the TabBar merges the Ionicons glyph and the label into one accessibility element
+# once the icon font finishes loading ("<icon-glyph>, Aujourd'hui"), which makes a plain exact
+# match flaky depending on how far app boot has progressed by the time this check runs.
+- assertVisible: ".*Aujourd'hui.*"
+# Plain "Bibliothèque" doesn't match: the tab's Ionicons glyph + label are merged into one
+# accessibility element by iOS ("<icon-glyph>, Bibliothèque"), and `tapOn`'s text selector
+# requires a full match -- a wildcard regex works around it.
+- tapOn: ".*Bibliothèque.*"
+- assertVisible:
+    id: "library.addButton"
+
+# Prerequisite: a Food to use as the recipe's ingredient (KCAL-109..118, Sprint 1).
+- tapOn:
+    id: "library.addButton"
+- tapOn:
+    id: "foodForm.name"
+- inputText: "Poulet Maestro E2E"
+- tapOn:
+    id: "foodForm.referenceUnit.g"
+# Round numbers on purpose (200 kcal / 100 g reference): with a 150 g quantity and 2 servings
+# further down, every derived value below is an exact integer (300, then 150) -- no dependency
+# on Intl.NumberFormat's rounding mode for a would-be .5 boundary case.
+- tapOn:
+    id: "foodForm.calories"
+- inputText: "200"
+- tapOn:
+    id: "foodForm.protein"
+- inputText: "30"
+- tapOn:
+    id: "foodForm.carbs"
+- inputText: "0"
+- tapOn:
+    id: "foodForm.fat"
+- inputText: "8"
+# The header "Enregistrer" button calls the exact same handleSubmit(onValid) as the bottom
+# "foodForm.submit" button, but stays above the keyboard -- the bottom one is covered by the
+# numeric keypad after filling the last field, so it's not reliably tappable here.
+- tapOn:
+    id: "foodForm.header.save"
+- assertVisible: ".*Poulet Maestro E2E.*"
+
+# The recipe itself (KCAL-131..137, Sprint 2).
+- tapOn:
+    id: "library.addRecipeButton"
+- tapOn:
+    id: "recipeForm.name"
+- inputText: "Recette Maestro E2E"
+- tapOn:
+    id: "recipeForm.servings"
+- eraseText
+- inputText: "2"
+# `hideKeyboard` isn't supported for this custom NumberField -- tapping a static, non-interactive
+# label blurs the servings field and dismisses the keyboard instead. Without this, the still-open
+# keyboard absorbs the next tap (dismissing itself instead of pressing "addIngredient" underneath
+# it), and the picker never opens.
+- tapOn: "Ingrédients"
+
+- tapOn:
+    id: "recipeForm.addIngredient"
+- tapOn:
+    id: "recipeForm.ingredientPicker.searchField"
+- inputText: "Poulet Maestro E2E"
+# Matching by id, not text: a text match here is ambiguous between the search field itself
+# (whose current value also contains "Poulet Maestro E2E") and the actual result row -- Maestro
+# picked the field once during authoring, which re-typed into it and broke the query. The result
+# row's id always starts with this prefix regardless of the food's generated id, and doesn't
+# collide with "recipeForm.ingredientPicker.searchField".
+#
+# Explicit wait first, as its own step: the debounced search (250ms) replaces "Aucun aliment
+# trouvé." with the result row, shifting layout right as `tapOn` would otherwise be computing
+# tap coordinates -- observed landing on the sheet's backdrop instead (which closes it on tap,
+# per components.md) rather than the row. Resolving visibility here first, then letting the
+# following `tapOn` re-query the (by-then stable) hierarchy on its own, avoids that race.
+- extendedWaitUntil:
+    visible:
+      id: "recipeForm.ingredientPicker.result..*"
+    timeout: 5000
+- tapOn:
+    id: "recipeForm.ingredientPicker.result..*"
+- assertVisible:
+    id: "recipeForm.ingredientPicker.quantity"
+- tapOn:
+    id: "recipeForm.ingredientPicker.quantityField"
+- inputText: "150"
+# Same keyboard-dismiss workaround as above -- tap the (static) food name header in the sheet.
+- tapOn: ".*Poulet Maestro E2E.*"
+- tapOn:
+    id: "recipeForm.ingredientPicker.confirm"
+
+# 150 g of the 100 g / 200 kcal food above = 300 kcal, confirms the ingredient was actually
+# added and RM03/F09 recalculated live (KCAL-134), not just that the row exists.
+- assertVisible: ".*300 kcal.*"
+
+# Same reasoning as foodForm above: the header button, not the (possibly off-screen) bottom one.
+- tapOn:
+    id: "recipeForm.header.save"
+
+# Back on the Library screen: the new recipe is visible, closing the loop this flow exists to
+# check (there was previously no UI path to reach RecipeForm in create mode at all).
+- assertVisible: ".*Recette Maestro E2E.*"
