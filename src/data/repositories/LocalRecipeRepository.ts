@@ -8,6 +8,7 @@ import { err, ok } from '@/domain/types/result';
 
 import RecipeModel from '../database/models/Recipe';
 import RecipeIngredientModel from '../database/models/RecipeIngredient';
+import { optional } from './mapping';
 import type { CreateRecipeInput, RecipeRepository, UpdateRecipeInput } from './RecipeRepository';
 
 export function toDomainRecipe(record: RecipeModel): Recipe {
@@ -15,7 +16,7 @@ export function toDomainRecipe(record: RecipeModel): Recipe {
     id: record.id,
     name: record.name,
     servings: record.servings,
-    notes: record.notes,
+    notes: optional(record.notes),
     isFavorite: record.isFavorite,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,

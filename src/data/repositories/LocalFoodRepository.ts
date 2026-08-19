@@ -9,31 +9,7 @@ import { err, ok } from '@/domain/types/result';
 import FoodModel from '../database/models/Food';
 import RecipeIngredientModel from '../database/models/RecipeIngredient';
 import type { CreateFoodInput, FoodRepository, UpdateFoodInput } from './FoodRepository';
-
-function toDomainFood(record: FoodModel): Food {
-  return {
-    id: record.id,
-    name: record.name,
-    brand: record.brand,
-    calories: record.calories,
-    protein: record.protein,
-    carbs: record.carbs,
-    fat: record.fat,
-    fiber: record.fiber,
-    sugar: record.sugar,
-    referenceQuantity: record.referenceQuantity,
-    referenceUnit: record.referenceUnit,
-    servingQuantity: record.servingQuantity,
-    servingUnit: record.servingUnit,
-    category: record.category,
-    barcode: record.barcode,
-    source: record.source,
-    isFavorite: record.isFavorite,
-    isArchived: record.isArchived,
-    createdAt: record.createdAt,
-    updatedAt: record.updatedAt,
-  };
-}
+import { toDomainFood } from './mapping';
 
 export class LocalFoodRepository implements FoodRepository {
   constructor(private readonly database: Database) {}

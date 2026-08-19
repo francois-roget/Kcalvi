@@ -107,7 +107,10 @@ function referenceQuantityFor(unit: ReferenceUnit): number {
 
 /** Converts a domain number to the comma-decimal text NumberField/parseLocaleNumber expect. */
 function numberToText(value: number | undefined): string {
-  if (value === undefined) return '';
+  // Belt-and-braces: the data/repositories mapping layer (mapping.ts's `optional()`) should
+  // already normalize a WatermelonDB `null` to `undefined` before it ever reaches this screen,
+  // but this guard keeps a future mapping regression from leaking the literal string "null".
+  if (value === undefined || value === null) return '';
   return String(value).replace('.', ',');
 }
 
