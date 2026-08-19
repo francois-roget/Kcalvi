@@ -6,7 +6,7 @@ import { ThemeProvider } from 'styled-components/native';
 import '@/i18n';
 
 import type { Food, Recipe } from '@/domain/types';
-import { ok } from '@/domain/types/result';
+import { err, ok } from '@/domain/types/result';
 import type { LibraryScreenProps } from '@/navigation/types';
 import { theme } from '@/ui/theme';
 
@@ -59,12 +59,35 @@ jest.mock('react-native-safe-area-context', () => {
   };
 });
 
+// LibraryScreen imports the real WatermelonDB `database` singleton at module scope
+// (to pass to `getRecipesCalories`, KCAL-158). Constructing the real SQLiteAdapter
+// has native-module side effects that don't work under Jest, so a stub object is
+// enough here -- the mocked `getRecipesCalories` below never actually reads it.
+jest.mock('@/data/database', () => ({ database: {} }));
+
+const mockGetRecipesCalories = jest.fn();
+jest.mock('@/data/repositories/getRecipesCalories', () => ({
+  getRecipesCalories: (...args: unknown[]) => mockGetRecipesCalories(...args),
+}));
+
+// `useFocusEffect` needs a NavigationContainer ancestor to resolve `useNavigation()`
+// internally, which this screen-only render tree doesn't provide. A stub that just
+// runs the callback once on mount (mirroring `useEffect`) is enough: these tests
+// never assert on blur/re-focus behavior, only that the effect body runs.
+jest.mock('@react-navigation/native', () => {
+  const { useEffect } = require('react');
+  return {
+    useFocusEffect: (callback: () => void | (() => void)) => useEffect(callback, []),
+  };
+});
+
 const mockSearch = jest.fn();
 const mockUpdate = jest.fn();
 const mockDelete = jest.fn();
 const mockArchive = jest.fn();
 const mockRecipeSearch = jest.fn();
 const mockRecipeUpdate = jest.fn();
+const mockRecipeArchive = jest.fn();
 const mockFindUsagesByFoodId = jest.fn();
 
 jest.mock('@/data/repositories', () => ({
@@ -79,10 +102,10 @@ jest.mock('@/data/repositories', () => ({
   recipeRepository: {
     search: (query: string) => mockRecipeSearch(query),
     update: (id: string, input: unknown) => mockRecipeUpdate(id, input),
+    archive: (id: string) => mockRecipeArchive(id),
     findUsagesByFoodId: (foodId: string) => mockFindUsagesByFoodId(foodId),
     findById: jest.fn(),
     create: jest.fn(),
-    archive: jest.fn(),
     delete: jest.fn(),
   },
 }));
@@ -154,7 +177,11 @@ describe('LibraryScreen', () => {
     mockArchive.mockResolvedValue(ok(undefined));
     mockRecipeSearch.mockImplementation(() => recipesSubject);
     mockRecipeUpdate.mockResolvedValue(ok(makeRecipe()));
+    mockRecipeArchive.mockResolvedValue(ok(undefined));
     mockFindUsagesByFoodId.mockResolvedValue([]);
+    // Default: no calories resolved for any recipe (empty Map), so cards fall back
+    // to "N portions" unless a test explicitly provides calories.
+    mockGetRecipesCalories.mockResolvedValue(new Map());
   });
 
   it('shows the empty-library state (KCAL-108) when there are no foods and no search', async () => {
@@ -323,7 +350,7 @@ describe('LibraryScreen', () => {
     expect(mockDelete).not.toHaveBeenCalled();
   });
 
-  it('shows the "in use" branch (Archiver) when the food is referenced by a recipe (KCAL-145)', async () => {
+  it('shows only Archiver/Annuler with the explanatory message when the food is in use (KCAL-145/153)', async () => {
     foodsSubject.next([makeFood({ id: 'food-1', name: 'Pomme' })]);
     mockFindUsagesByFoodId.mockResolvedValue([
       { id: 'ri-1', recipeId: 'recipe-1', foodId: 'food-1', quantity: 100, unit: 'g' },
@@ -337,10 +364,177 @@ describe('LibraryScreen', () => {
       expect(screen.getByTestId('library.deleteDialog.archive')).toBeTruthy();
     });
 
+    // KCAL-153: "Supprimer quand même" is gone entirely -- only Archiver/Annuler remain,
+    // and the `confirm` testID (used by the not-in-use "Supprimer" button) doesn't exist
+    // in this branch.
+    expect(screen.queryByTestId('library.deleteDialog.confirm')).toBeNull();
+    expect(
+      screen.getByText(
+        "Il ne peut pas être supprimé sans casser cette recette. En l'archivant, il disparaît de ta bibliothèque mais reste disponible dans les recettes qui l'utilisent.",
+      ),
+    ).toBeTruthy();
+
     await fireEvent.press(screen.getByTestId('library.deleteDialog.archive'));
 
     await waitFor(() => {
       expect(mockArchive).toHaveBeenCalledWith('food-1');
     });
+    // Successful archive closes the sheet.
+    expect(screen.queryByTestId('library.deleteDialog')).toBeNull();
+  });
+
+  it('keeps the delete dialog open with an error when foodRepository.delete fails (KCAL-153)', async () => {
+    foodsSubject.next([makeFood({ id: 'food-1', name: 'Pomme' })]);
+    mockDelete.mockResolvedValue(err({ code: 'FOOD_NOT_FOUND', message: 'Food not found' }));
+    await renderLibraryScreen();
+
+    await fireEvent.press(screen.getByTestId('library.foodCard.food-1.delete'));
+    await fireEvent.press(screen.getByTestId('library.deleteDialog.confirm'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('library.deleteDialog.error')).toBeTruthy();
+    });
+    // Never closes silently on failure.
+    expect(screen.getByTestId('library.deleteDialog')).toBeTruthy();
+  });
+
+  it('keeps the delete dialog open with an error when foodRepository.archive fails (KCAL-153)', async () => {
+    foodsSubject.next([makeFood({ id: 'food-1', name: 'Pomme' })]);
+    mockFindUsagesByFoodId.mockResolvedValue([
+      { id: 'ri-1', recipeId: 'recipe-1', foodId: 'food-1', quantity: 100, unit: 'g' },
+    ]);
+    mockArchive.mockResolvedValue(err({ code: 'FOOD_NOT_FOUND', message: 'Food not found' }));
+    await renderLibraryScreen();
+
+    await fireEvent.press(screen.getByTestId('library.foodCard.food-1.delete'));
+    await waitFor(() => {
+      expect(screen.getByTestId('library.deleteDialog.archive')).toBeTruthy();
+    });
+    await fireEvent.press(screen.getByTestId('library.deleteDialog.archive'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('library.deleteDialog.error')).toBeTruthy();
+    });
+    expect(screen.getByTestId('library.deleteDialog')).toBeTruthy();
+  });
+
+  it('the Aliments filter removes the Recettes section from the render tree entirely (KCAL-157)', async () => {
+    foodsSubject.next([makeFood({ id: 'food-1', name: 'Pomme' })]);
+    recipesSubject.next([makeRecipe({ id: 'recipe-1', name: 'Salade de quinoa' })]);
+    await renderLibraryScreen();
+
+    expect(screen.getByTestId('library.section.recipes')).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId('library.filter.foods'));
+
+    expect(screen.queryByTestId('library.section.recipes')).toBeNull();
+    expect(screen.getByTestId('library.section.foods')).toBeTruthy();
+  });
+
+  it('the Recettes filter removes the Aliments section from the render tree entirely (KCAL-157)', async () => {
+    foodsSubject.next([makeFood({ id: 'food-1', name: 'Pomme' })]);
+    recipesSubject.next([makeRecipe({ id: 'recipe-1', name: 'Salade de quinoa' })]);
+    await renderLibraryScreen();
+
+    await fireEvent.press(screen.getByTestId('library.filter.recipes'));
+
+    expect(screen.queryByTestId('library.section.foods')).toBeNull();
+    expect(screen.getByTestId('library.section.recipes')).toBeTruthy();
+  });
+
+  it('★ Favoris with zero favorite recipes still shows an empty Recipes section (KCAL-157)', async () => {
+    foodsSubject.next([makeFood({ id: 'food-1', name: 'Pomme', isFavorite: true })]);
+    recipesSubject.next([
+      makeRecipe({ id: 'recipe-1', name: 'Salade de quinoa', isFavorite: false }),
+    ]);
+    await renderLibraryScreen();
+
+    await fireEvent.press(screen.getByTestId('library.filter.favorites'));
+
+    // Not the global "no results" collapse: the Foods section has a favorite, so only
+    // the Recipes section is empty -- it stays present with its own "Aucun résultat".
+    expect(screen.queryByTestId('library.list.noResultsGlobal')).toBeNull();
+    expect(screen.getByTestId('library.section.recipes')).toBeTruthy();
+    expect(screen.queryByText('Salade de quinoa')).toBeNull();
+  });
+
+  it('shows a single global no-results message when a search matches nothing (KCAL-157)', async () => {
+    // Seed non-empty content first so the screen renders the full UI (with the search
+    // field) rather than the KCAL-108 empty-library state, which has no search field.
+    foodsSubject.next([makeFood({ id: 'food-1', name: 'Pomme' })]);
+    await renderLibraryScreen();
+
+    await fireEvent.changeText(screen.getByTestId('library.searchField'), 'xyz');
+
+    await waitFor(() => {
+      expect(mockSearch).toHaveBeenCalledWith('xyz');
+    });
+
+    // Simulate the search now matching nothing (the real `foodRepository.search` would
+    // re-emit an empty list for a query with no results). Pushed from inside `waitFor`'s
+    // callback so the resulting state update is flushed through `act` on each poll,
+    // same as `fireEvent`/`waitFor` do implicitly elsewhere in this file.
+    await waitFor(() => {
+      foodsSubject.next([]);
+      expect(screen.getByTestId('library.list.noResultsGlobal')).toBeTruthy();
+    });
+    expect(screen.getByText('Aucun résultat pour « xyz »')).toBeTruthy();
+    // Not the two per-section messages stacked.
+    expect(screen.queryByTestId('library.section.recipes')).toBeNull();
+    expect(screen.queryByTestId('library.section.foods')).toBeNull();
+  });
+
+  it('shows per-recipe-portion kcal on the recipe card once getRecipesCalories resolves (KCAL-158)', async () => {
+    recipesSubject.next([makeRecipe({ id: 'recipe-1', name: 'Salade de quinoa', servings: 4 })]);
+    mockGetRecipesCalories.mockResolvedValue(new Map([['recipe-1', 420]]));
+
+    await renderLibraryScreen();
+
+    await waitFor(() => {
+      expect(screen.getByText('420 kcal par portion · 4 portions')).toBeTruthy();
+    });
+  });
+
+  it('archives a recipe after confirming the dialog, removing it and decrementing the counter (KCAL-162)', async () => {
+    recipesSubject.next([makeRecipe({ id: 'recipe-1', name: 'Salade de quinoa' })]);
+    mockRecipeArchive.mockImplementation(async () => {
+      // Models the real repository: a successful archive() write causes the observed
+      // `recipes` query to re-emit without the now-archived recipe.
+      recipesSubject.next([]);
+      return ok(undefined);
+    });
+    await renderLibraryScreen();
+
+    expect(screen.getByText('Salade de quinoa')).toBeTruthy();
+    expect(screen.getByText('1')).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId('library.recipeCard.recipe-1.delete'));
+    await waitFor(() => {
+      expect(screen.getByTestId('library.archiveRecipeDialog.archive')).toBeTruthy();
+    });
+    await fireEvent.press(screen.getByTestId('library.archiveRecipeDialog.archive'));
+
+    await waitFor(() => {
+      expect(mockRecipeArchive).toHaveBeenCalledWith('recipe-1');
+      expect(screen.queryByText('Salade de quinoa')).toBeNull();
+    });
+    expect(screen.queryByTestId('library.archiveRecipeDialog')).toBeNull();
+  });
+
+  it('keeps the archive recipe dialog open with an error when recipeRepository.archive fails (KCAL-162)', async () => {
+    recipesSubject.next([makeRecipe({ id: 'recipe-1', name: 'Salade de quinoa' })]);
+    mockRecipeArchive.mockResolvedValue(err({ code: 'RECIPE_NOT_FOUND', message: 'Not found' }));
+    await renderLibraryScreen();
+
+    await fireEvent.press(screen.getByTestId('library.recipeCard.recipe-1.delete'));
+    await waitFor(() => {
+      expect(screen.getByTestId('library.archiveRecipeDialog.archive')).toBeTruthy();
+    });
+    await fireEvent.press(screen.getByTestId('library.archiveRecipeDialog.archive'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('library.archiveRecipeDialog.error')).toBeTruthy();
+    });
+    expect(screen.getByTestId('library.archiveRecipeDialog')).toBeTruthy();
   });
 });

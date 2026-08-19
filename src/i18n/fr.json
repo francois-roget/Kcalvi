@@ -241,22 +241,27 @@
     },
     "sections": {
       "recipes": "Recettes",
-      "recipesComingSoon": "Bientôt disponible",
       "foods": "Aliments"
     },
     "list": {
-      "noResults": "Aucun résultat"
+      "noResults": "Aucun résultat",
+      "noResultsForQuery": "Aucun résultat pour « {{query}} »"
     },
     "food": {
       "addFavorite": "Ajouter {{name}} aux favoris",
       "removeFavorite": "Retirer {{name}} des favoris",
-      "deleteLabel": "Supprimer {{name}}"
+      "deleteLabel": "Supprimer {{name}}",
+      "kcalPerReference": "{{kcal}} kcal pour {{quantity}} {{unit}}",
+      "kcalPerUnit": "{{kcal}} kcal par unité"
     },
     "recipe": {
       "servings_one": "{{count}} portion",
       "servings_other": "{{count}} portions",
       "addFavorite": "Ajouter {{name}} aux favoris",
-      "removeFavorite": "Retirer {{name}} des favoris"
+      "removeFavorite": "Retirer {{name}} des favoris",
+      "deleteLabel": "Supprimer {{name}}",
+      "kcalPerPortion_one": "{{kcal}} kcal par portion · {{count}} portion",
+      "kcalPerPortion_other": "{{kcal}} kcal par portion · {{count}} portions"
     },
     "empty": {
       "title": "Ta bibliothèque est vide",
@@ -269,12 +274,20 @@
       "title": "Supprimer {{name}} ?",
       "message": "Cette action est irréversible.",
       "confirm": "Supprimer",
-      "confirmAnyway": "Supprimer quand même",
       "cancel": "Annuler",
       "archive": "Archiver",
       "inUseTitle_one": "Cet aliment est utilisé dans {{count}} recette.",
       "inUseTitle_other": "Cet aliment est utilisé dans {{count}} recettes.",
-      "inUseMessage": "Sa suppression pourrait affecter ces recettes."
+      "inUseMessage": "Il ne peut pas être supprimé sans casser cette recette. En l'archivant, il disparaît de ta bibliothèque mais reste disponible dans les recettes qui l'utilisent.",
+      "deleteError": "La suppression a échoué. Réessaie.",
+      "archiveError": "L'archivage a échoué. Réessaie."
+    },
+    "archiveRecipeDialog": {
+      "title": "Archiver {{name}} ?",
+      "message": "Elle disparaîtra de ta bibliothèque. Les entrées de journal existantes ne sont pas modifiées.",
+      "archive": "Archiver",
+      "cancel": "Annuler",
+      "archiveError": "L'archivage a échoué. Réessaie."
     }
   }
 }
