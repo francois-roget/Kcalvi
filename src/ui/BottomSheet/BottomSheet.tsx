@@ -9,6 +9,9 @@ import type { Theme } from '@/ui/theme';
 export type BottomSheetProps = PropsWithChildren<{
   visible: boolean;
   onClose: () => void;
+  /** Fraction of the window height the sheet should occupy at minimum (0-1).
+   *  Omitted: the sheet keeps its intrinsic, content-driven height. */
+  minHeightRatio?: number;
 }>;
 
 const OFFSCREEN_Y = 600;
@@ -22,7 +25,7 @@ const KEYBOARD_FALLBACK_DURATION = 220;
 // room, and only ever matters for sheets tall enough to reach the top of the screen.
 const TOP_CLEARANCE = 72;
 
-export function BottomSheet({ visible, onClose, children }: BottomSheetProps) {
+export function BottomSheet({ visible, onClose, children, minHeightRatio }: BottomSheetProps) {
   const theme = useTheme() as Theme;
   const { t } = useTranslation();
   const { height: windowHeight } = useWindowDimensions();
@@ -64,11 +67,20 @@ export function BottomSheet({ visible, onClose, children }: BottomSheetProps) {
   }, [visible, keyboardHeight]);
 
   const overlayStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
-  const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: (1 - progress.value) * OFFSCREEN_Y - keyboardHeight.value }],
-    // Keep the sheet from growing past the top of the screen once it is lifted.
-    maxHeight: windowHeight - keyboardHeight.value - TOP_CLEARANCE,
-  }));
+  const sheetStyle = useAnimatedStyle(() => {
+    // `keyboardHeight` is a shared value, so the minHeight bound has to be computed here, inside
+    // the worklet, rather than hoisted into a plain JS constant that would miss keyboard updates.
+    const availableHeight = windowHeight - keyboardHeight.value - TOP_CLEARANCE;
+
+    return {
+      transform: [{ translateY: (1 - progress.value) * OFFSCREEN_Y - keyboardHeight.value }],
+      // Keep the sheet from growing past the top of the screen once it is lifted.
+      maxHeight: availableHeight,
+      // Optionally enforce a minimum height so sparse content doesn't collapse the sheet, capped
+      // by the same keyboard-aware clearance used for `maxHeight`.
+      minHeight: minHeightRatio ? Math.min(windowHeight * minHeightRatio, availableHeight) : undefined,
+    };
+  });
 
   if (!visible) {
     return null;
