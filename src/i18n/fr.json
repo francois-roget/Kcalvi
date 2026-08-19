@@ -184,6 +184,9 @@
       "modeServings": "En portions usuelles",
       "quantityLabel": "Quantité",
       "servingsLabel": "Nombre de portions",
+      "referencePill": "{{value}} {{unit}}",
+      "unitPill_one": "{{count}} unité",
+      "unitPill_other": "{{count}} unités",
       "cancel": "Annuler",
       "confirm": "Ajouter"
     },

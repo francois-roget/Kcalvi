@@ -142,6 +142,28 @@ function makeFoodWithPortion(overrides: Partial<Food> = {}): Food {
   return makeFood({ portions: [EGG_PORTION], ...overrides });
 }
 
+// Two distinct portions (ascending `position`), used by the KCAL-164 quick-portion-pill tests.
+const PORTION_A: FoodPortion = {
+  id: 'portion-pot',
+  foodId: 'food-1',
+  label: '1 pot',
+  quantity: 150,
+  unit: 'g',
+  position: 0,
+};
+const PORTION_B: FoodPortion = {
+  id: 'portion-tranche',
+  foodId: 'food-1',
+  label: '1 tranche',
+  quantity: 30,
+  unit: 'g',
+  position: 1,
+};
+
+function makeFoodWithTwoPortions(overrides: Partial<Food> = {}): Food {
+  return makeFood({ portions: [PORTION_A, PORTION_B], ...overrides });
+}
+
 function makeRecipe(overrides: Partial<Recipe> = {}): Recipe {
   return {
     id: 'recipe-1',
@@ -581,5 +603,153 @@ describe('RecipeFormScreen — portion traceability (KCAL-163d)', () => {
     // Falls back to the reference-unit quantity/unit -- never throws, never shows an error.
     await findByText(`${formatDecimal(150)} ${i18n.t('recipeForm.units.g')}`);
     expect(queryByText(`${formatDecimal(3)} unité`)).toBeNull();
+  });
+});
+
+describe('RecipeFormScreen — quick portion pills (KCAL-164)', () => {
+  it('renders exactly one pill per saved portion (max 3, ascending position), and tapping one pre-fills the converted quantity', async () => {
+    const food = makeFood();
+    mockFoodFindById.mockResolvedValueOnce({ ok: true, value: makeFoodWithTwoPortions() });
+    const utils = await renderScreen();
+    const { getByTestId, findByTestId, queryByTestId } = utils;
+
+    await openQuantityStepFor(utils, food);
+
+    // Exactly the food's 2 portions, no derived (reference-unit) pill alongside them.
+    await findByTestId(`recipeForm.ingredientPicker.pill.${PORTION_A.id}`);
+    await findByTestId(`recipeForm.ingredientPicker.pill.${PORTION_B.id}`);
+    expect(queryByTestId('recipeForm.ingredientPicker.pill.ratio-1')).toBeNull();
+
+    await fireEvent.press(getByTestId(`recipeForm.ingredientPicker.pill.${PORTION_B.id}`));
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
+
+    // PORTION_B is "1 tranche" == 30 g -- tapping it (count 1) must land on exactly that
+    // converted reference-unit quantity.
+    await waitFor(() =>
+      expect(getByTestId('recipeForm.totalWeight').props.value).toBe(
+        formatInteger(PORTION_B.quantity),
+      ),
+    );
+  });
+
+  it('derives 50 / 100 / 150 g pills for a food with no saved portions and a 100 g reference quantity', async () => {
+    const food = makeFood(); // referenceQuantity: 100, referenceUnit: 'g', portions: [] by default.
+    const utils = await renderScreen();
+
+    await openQuantityStepFor(utils, food);
+
+    await utils.findByText(
+      i18n.t('recipeForm.picker.referencePill', { value: formatInteger(50), unit: 'g' }),
+    );
+    await utils.findByText(
+      i18n.t('recipeForm.picker.referencePill', { value: formatInteger(100), unit: 'g' }),
+    );
+    await utils.findByText(
+      i18n.t('recipeForm.picker.referencePill', { value: formatInteger(150), unit: 'g' }),
+    );
+  });
+
+  it('derives 1 / 2 / 3 unit pills for a food with no saved portions referenced "by unit"', async () => {
+    const food = makeFood({ referenceUnit: 'unit', referenceQuantity: 1 });
+    mockFoodSearch.mockImplementation(() => new BehaviorSubject<Food[]>([food]));
+    // The default mockFoodFindById fixture ignores overrides (it only carries `id` through
+    // makeFood()), which would revert this food's referenceUnit back to 'g' once the
+    // picker's post-selection upgrade resolves -- override it to keep 'unit'.
+    mockFoodFindById.mockResolvedValueOnce({ ok: true, value: food });
+    const utils = await renderScreen();
+
+    await openQuantityStepFor(utils, food);
+
+    await utils.findByText(i18n.t('recipeForm.picker.unitPill', { count: 1 }));
+    await utils.findByText(i18n.t('recipeForm.picker.unitPill', { count: 2 }));
+    await utils.findByText(i18n.t('recipeForm.picker.unitPill', { count: 3 }));
+  });
+
+  it('produces identical recipe totals whether a quantity is entered via a pill tap or typed manually (KCAL-149 parity, extended)', async () => {
+    const food = makeFood();
+    mockFoodFindById.mockResolvedValue({ ok: true, value: makeFoodWithTwoPortions() });
+    const utils = await renderScreen();
+    const { getByTestId } = utils;
+
+    // First ingredient: typed manually, in the reference unit, the exact converted amount
+    // the PORTION_B pill below is expected to produce (30 g).
+    await openQuantityStepFor(utils, food);
+    await fireEvent.changeText(
+      getByTestId('recipeForm.ingredientPicker.quantityField'),
+      String(PORTION_B.quantity),
+    );
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
+
+    await waitFor(() =>
+      expect(getByTestId('recipeForm.totalWeight').props.value).toBe(
+        formatInteger(PORTION_B.quantity),
+      ),
+    );
+
+    // Second ingredient of the same food, this time via the PORTION_B pill (count 1, left
+    // unedited) -- must contribute exactly the same reference-unit quantity as the manual
+    // entry above, so the total exactly doubles.
+    await openQuantityStepFor(utils, food);
+    await fireEvent.press(getByTestId(`recipeForm.ingredientPicker.pill.${PORTION_B.id}`));
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
+
+    await waitFor(() =>
+      expect(getByTestId('recipeForm.totalWeight').props.value).toBe(
+        formatInteger(PORTION_B.quantity * 2),
+      ),
+    );
+  });
+
+  it('shows the portion label after reopening a recipe whose ingredient was added via a pill', async () => {
+    const food = makeFood();
+    mockFoodFindById.mockResolvedValueOnce({ ok: true, value: makeFoodWithTwoPortions() });
+    const utils = await renderScreen();
+    const { getByTestId } = utils;
+
+    await fireEvent.changeText(getByTestId('recipeForm.name'), 'Salade de quinoa');
+    await openQuantityStepFor(utils, food);
+    await fireEvent.press(getByTestId(`recipeForm.ingredientPicker.pill.${PORTION_A.id}`));
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
+    await fireEvent.press(getByTestId('recipeForm.submit'));
+
+    await waitFor(() => expect(mockRecipeCreate).toHaveBeenCalledTimes(1));
+    expect(mockRecipeCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ingredients: [
+          {
+            foodId: food.id,
+            quantity: PORTION_A.quantity,
+            unit: PORTION_A.label,
+            portionId: PORTION_A.id,
+          },
+        ],
+      }),
+    );
+
+    // Simulate reopening the just-created recipe: the stored ingredient carries the
+    // portionId submitted above, at the reference-unit quantity the pill tap produced.
+    const recipe = makeRecipe({ id: 'recipe-pill' });
+    mockGetRecipeWithIngredients.mockResolvedValue({
+      ok: true,
+      value: {
+        recipe,
+        items: [
+          {
+            ingredient: {
+              id: 'ing-pill',
+              recipeId: recipe.id,
+              foodId: food.id,
+              quantity: PORTION_A.quantity,
+              unit: PORTION_A.label,
+              portionId: PORTION_A.id,
+            },
+            food: makeFoodWithTwoPortions(),
+          },
+        ],
+      },
+    });
+
+    const { findByText } = await renderScreen({ recipeId: recipe.id });
+    await findByText(`${formatDecimal(1)} ${PORTION_A.label}`);
   });
 });

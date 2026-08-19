@@ -16,7 +16,13 @@ import {
   calculateRecipeTotals,
   convertPortionToReferenceQuantity,
 } from '@/domain/calculations';
-import type { DomainError, Food, NutritionValues, RecipeIngredient } from '@/domain/types';
+import type {
+  DomainError,
+  Food,
+  FoodPortion,
+  NutritionValues,
+  RecipeIngredient,
+} from '@/domain/types';
 import { assertNonNegative } from '@/domain/validation';
 import { useObservable } from '@/hooks/useObservable';
 import type { RecipeFormScreenProps } from '@/navigation/types';
@@ -27,6 +33,7 @@ import Chip from '@/ui/Chip';
 import HeroCard from '@/ui/HeroCard';
 import ListCard from '@/ui/ListCard';
 import NumberField from '@/ui/NumberField';
+import QuickPortionButton from '@/ui/QuickPortionButton';
 import SearchField from '@/ui/SearchField';
 import Text from '@/ui/Text';
 import TextField from '@/ui/TextField';
@@ -185,6 +192,71 @@ function resolveIngredientDisplay(
   return { displayQuantity: ingredient.quantity, displayUnit: food.referenceUnit };
 }
 
+/**
+ * A single quick-portion shortcut shown as a `QuickPortionButton` on the quantity step
+ * (KCAL-164). Tapping one fills `quantityText` (and switches `quantityMode`) but never
+ * submits by itself -- the user still confirms/adjusts, unlike the diary-entry
+ * median-preselect pattern (screen 2i, Sprint 3), which auto-fills without a tap.
+ */
+type QuickPortionPill = {
+  key: string;
+  label: string;
+  quantityText: string;
+  mode: QuantityMode;
+  portion?: FoodPortion;
+};
+
+/**
+ * Builds up to 3 quick-portion pills for the food currently selected in the picker
+ * (KCAL-164). Priority order:
+ * 1. The food has real saved portions (KCAL-163a) -- one pill per portion, ascending
+ *    `position`, capped at 3. Each represents "1" of that portion (e.g. "1 pot").
+ * 2. No portions, but the food is counted "by unit" -- 1 / 2 / 3 units, entered directly
+ *    in the reference unit (scaling a unit count by a ratio makes no sense).
+ * 3. No portions, reference unit is g/ml -- 0.5x / 1x / 1.5x the food's actual
+ *    `referenceQuantity` (e.g. 50/100/150 g for a "per 100 g" food, 25/50/75 g for a
+ *    "per 50 g" food -- always proportional, never hardcoded to literally 100).
+ */
+function buildQuickPortionPills(
+  food: Food,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): QuickPortionPill[] {
+  if (food.portions.length > 0) {
+    return [...food.portions]
+      .sort((a, b) => a.position - b.position)
+      .slice(0, 3)
+      .map((portion) => ({
+        key: portion.id,
+        label: portion.label,
+        quantityText: numberToText(1),
+        mode: 'servings' as const,
+        portion,
+      }));
+  }
+
+  if (food.referenceUnit === 'unit') {
+    return [1, 2, 3].map((count) => ({
+      key: `unit-${count}`,
+      label: t('recipeForm.picker.unitPill', { count }),
+      quantityText: numberToText(count),
+      mode: 'reference' as const,
+    }));
+  }
+
+  return [0.5, 1, 1.5].map((multiplier) => {
+    const quantity = food.referenceQuantity * multiplier;
+    return {
+      key: `ratio-${multiplier}`,
+      label: t('recipeForm.picker.referencePill', {
+        value: formatInteger(quantity),
+        unit: unitLabel(t, food.referenceUnit),
+      }),
+      quantityText: numberToText(quantity),
+      mode: 'reference' as const,
+    };
+  });
+}
+
 /** Debounces a fast-changing value (e.g. the ingredient picker's search input). */
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -291,6 +363,10 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
   const [quantityMode, setQuantityMode] = useState<QuantityMode>('reference');
   const [quantityText, setQuantityText] = useState('');
   const [quantityError, setQuantityError] = useState<string | undefined>(undefined);
+  // KCAL-164 — which food_portions row a "servings" quantity is expressed in. Set explicitly
+  // when a portion pill is tapped; falls back to the food's first portion (the pre-KCAL-164
+  // behavior) when the "En portions usuelles" chip is used directly without a pill tap.
+  const [activePortion, setActivePortion] = useState<FoodPortion | undefined>(undefined);
 
   const {
     control,
@@ -432,12 +508,14 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
     setQuantityText('');
     setQuantityError(undefined);
     setIngredientQuery('');
+    setActivePortion(undefined);
   }
 
   function selectFoodForIngredient(food: Food) {
     setQuantityMode('reference');
     setQuantityText('');
     setQuantityError(undefined);
+    setActivePortion(undefined);
     setPickerStep('quantity');
     // The search results (foodRepository.search, above) intentionally don't carry `portions`
     // (KCAL-163b: avoids stacking a second N+1 on the library search results). Paint
@@ -448,6 +526,15 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
     void foodRepository.findById(food.id).then((result) => {
       if (result.ok) setSelectedFood(result.value);
     });
+  }
+
+  // KCAL-164 — tapping a quick-portion pill fills the field (and switches mode/active
+  // portion) but never submits by itself; the user still confirms/adjusts.
+  function selectQuickPortionPill(pill: QuickPortionPill) {
+    setQuantityMode(pill.mode);
+    setActivePortion(pill.portion);
+    setQuantityText(pill.quantityText);
+    setQuantityError(undefined);
   }
 
   function confirmAddIngredient() {
@@ -466,17 +553,20 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
       return;
     }
 
-    // The picker only offers a single quick-portion shortcut (the food's first portion by
-    // ascending `position`) -- a full N-portion picker is KCAL-164, out of scope here.
-    const firstPortion = quantityMode === 'servings' ? selectedFood.portions[0] : undefined;
+    // KCAL-164: the portion used for a "servings" quantity is whichever one the user tapped
+    // a pill for (activePortion); falling back to the food's first portion by ascending
+    // `position` when the "En portions usuelles" chip was toggled directly, without a pill
+    // tap -- this preserves the pre-KCAL-164 single-shortcut behavior in that case.
+    const effectivePortion =
+      quantityMode === 'servings' ? (activePortion ?? selectedFood.portions[0]) : undefined;
 
     // Convert BEFORE storing: RecipeIngredient.quantity must always be reference-unit-equivalent
     // (see convertPortionToReferenceQuantity's doc comment) -- this is the step that prevents
     // "portions" and reference-unit quantities from silently getting mixed at calculation time.
-    const referenceQuantity = firstPortion
-      ? convertPortionToReferenceQuantity(firstPortion, parsed)
+    const referenceQuantity = effectivePortion
+      ? convertPortionToReferenceQuantity(effectivePortion, parsed)
       : parsed;
-    const displayUnit = firstPortion ? firstPortion.label : selectedFood.referenceUnit;
+    const displayUnit = effectivePortion ? effectivePortion.label : selectedFood.referenceUnit;
 
     setIngredients((prev) => [
       ...prev,
@@ -486,7 +576,7 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
         referenceQuantity,
         displayQuantity: parsed,
         displayUnit,
-        portionId: firstPortion?.id,
+        portionId: effectivePortion?.id,
       },
     ]);
 
@@ -830,7 +920,11 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
                 }
                 unit={
                   quantityMode === 'servings'
-                    ? unitLabel(t, selectedFood.portions[0]?.label ?? selectedFood.referenceUnit)
+                    ? unitLabel(
+                        t,
+                        (activePortion ?? selectedFood.portions[0])?.label ??
+                          selectedFood.referenceUnit,
+                      )
                     : unitLabel(t, selectedFood.referenceUnit)
                 }
                 value={quantityText}
@@ -838,6 +932,17 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
                 error={quantityError}
               />
             </View>
+
+            <ChipRow style={{ marginTop: 12 }} testID="recipeForm.ingredientPicker.quickPortions">
+              {buildQuickPortionPills(selectedFood, t).map((pill) => (
+                <QuickPortionButton
+                  key={pill.key}
+                  testID={`recipeForm.ingredientPicker.pill.${pill.key}`}
+                  label={pill.label}
+                  onPress={() => selectQuickPortionPill(pill)}
+                />
+              ))}
+            </ChipRow>
 
             <Row style={{ marginTop: 16 }}>
               <Button
