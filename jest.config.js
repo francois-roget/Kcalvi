@@ -25,10 +25,14 @@ module.exports = {
     {
       displayName: 'App',
       preset: 'jest-expo',
-      // '/.claude/worktrees/' excludes agent worktrees nested under the repo root -- without it,
-      // a worktree's own node_modules pulls in a second React copy and every component test in
-      // this project crashes with "Cannot read properties of null (reading 'useContext')".
-      testPathIgnorePatterns: ['/node_modules/', '/.maestro/', '/.claude/worktrees/'],
+      // '<rootDir>/.claude/worktrees/' excludes agent worktrees nested under the repo root --
+      // without it, a worktree's own node_modules pulls in a second React copy and every
+      // component test in this project crashes with "Cannot read properties of null (reading
+      // 'useContext')". Anchored to <rootDir> (not a bare '/.claude/worktrees/') so this only
+      // excludes *nested* worktrees seen from the main repo -- a bare pattern also matches a
+      // worktree's own checkout path when jest runs from inside that worktree, silently
+      // excluding every App test there.
+      testPathIgnorePatterns: ['/node_modules/', '/.maestro/', '<rootDir>/.claude/worktrees/'],
     },
     {
       // Tests that hit a real SQLite database (better-sqlite3) through the real
