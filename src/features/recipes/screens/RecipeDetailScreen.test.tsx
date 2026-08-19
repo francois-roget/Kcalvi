@@ -83,6 +83,7 @@ function makeRecipe(overrides: Partial<Recipe> = {}): Recipe {
     name: 'Salade de poulet',
     servings: 2,
     isFavorite: true,
+    isArchived: false,
     createdAt: new Date('2026-01-01'),
     updatedAt: new Date('2026-01-01'),
     ...overrides,

@@ -13,6 +13,7 @@ export default class Recipe extends Model {
   @field('servings') servings!: number;
   @field('notes') notes?: string;
   @field('is_favorite') isFavorite!: boolean;
+  @field('is_archived') isArchived!: boolean;
   @readonly @date('created_at') createdAt!: Date;
   @readonly @date('updated_at') updatedAt!: Date;
 

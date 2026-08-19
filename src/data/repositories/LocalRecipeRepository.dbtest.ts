@@ -1,8 +1,23 @@
-import type { Database } from '@nozbe/watermelondb';
+/// <reference types="node" />
+// This file runs under the "DB" jest project (testEnvironment: 'node', see jest.config.js),
+// which is the only place in the codebase that touches the real filesystem (to reopen an
+// on-disk SQLite file across two adapters below). The root tsconfig.json intentionally scopes
+// `compilerOptions.types` to `["jest"]` so Node globals don't leak into React Native app code;
+// this explicit reference pulls in @types/node for this file only, without changing that.
+import { Database } from '@nozbe/watermelondb';
+import SQLiteAdapter from '@nozbe/watermelondb/adapters/sqlite';
 import type { Observable } from '@nozbe/watermelondb/utils/rx';
+import { appSchema, tableSchema } from '@nozbe/watermelondb';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 
 import { createTestDatabase } from '../database/createTestDatabase';
+import { migrations } from '../database/migrations';
+import { modelClasses } from '../database/models';
+import RecipeModel from '../database/models/Recipe';
 import RecipeIngredientModel from '../database/models/RecipeIngredient';
+import { schema } from '../database/schema';
 import type { CreateRecipeInput } from './RecipeRepository';
 import { LocalRecipeRepository } from './LocalRecipeRepository';
 
@@ -177,23 +192,24 @@ describe('LocalRecipeRepository (real SQLite via better-sqlite3)', () => {
   });
 
   describe('archive', () => {
-    it('returns RECIPE_ARCHIVE_NOT_SUPPORTED for an existing recipe (no is_archived column yet)', async () => {
+    it('sets is_archived on the record without touching its recipe_ingredients rows', async () => {
       const created = await repository.create(VALID_RECIPE_INPUT);
       expect(created.ok).toBe(true);
       if (!created.ok) return;
 
       const result = await repository.archive(created.value.id);
 
-      expect(result.ok).toBe(false);
-      if (result.ok) return;
-      expect(result.error.code).toBe('RECIPE_ARCHIVE_NOT_SUPPORTED');
+      expect(result.ok).toBe(true);
 
-      // The record itself is untouched by the (rejected) archive attempt.
-      const record = await database.get('recipes').find(created.value.id);
-      expect(record).toBeTruthy();
+      const record = await database.get<RecipeModel>('recipes').find(created.value.id);
+      expect(record.isArchived).toBe(true);
+
+      // Archiving is a soft flag on the recipe row -- its ingredients must survive untouched.
+      const ingredientRows = await fetchIngredientRows(database, created.value.id);
+      expect(ingredientRows).toHaveLength(2);
     });
 
-    it('returns RECIPE_NOT_FOUND for a nonexistent id, checked before the not-supported error', async () => {
+    it('returns RECIPE_NOT_FOUND for a nonexistent id', async () => {
       const result = await repository.archive('nonexistent-id');
 
       expect(result.ok).toBe(false);
@@ -314,6 +330,45 @@ describe('LocalRecipeRepository (real SQLite via better-sqlite3)', () => {
         [first.value.id, second.value.id].sort(),
       );
     });
+
+    it('excludes archived recipes', async () => {
+      const kept = await repository.create(VALID_RECIPE_INPUT);
+      expect(kept.ok).toBe(true);
+      if (!kept.ok) return;
+      const archived = await repository.create({
+        ...VALID_RECIPE_INPUT,
+        name: 'Soupe de courgettes',
+      });
+      expect(archived.ok).toBe(true);
+      if (!archived.ok) return;
+
+      const archiveResult = await repository.archive(archived.value.id);
+      expect(archiveResult.ok).toBe(true);
+
+      const results = await searchOnce(repository, '');
+
+      expect(results.map((recipe) => recipe.id)).toEqual([kept.value.id]);
+    });
+  });
+
+  describe('findById', () => {
+    // Sprint 3's diary feature reads a recipe by id even after it's been archived
+    // (an archived recipe stays usable from the diary, it only leaves the library list).
+    it('still finds an archived recipe', async () => {
+      const created = await repository.create(VALID_RECIPE_INPUT);
+      expect(created.ok).toBe(true);
+      if (!created.ok) return;
+
+      const archiveResult = await repository.archive(created.value.id);
+      expect(archiveResult.ok).toBe(true);
+
+      const found = await repository.findById(created.value.id);
+
+      expect(found.ok).toBe(true);
+      if (!found.ok) return;
+      expect(found.value.id).toBe(created.value.id);
+      expect(found.value.isArchived).toBe(true);
+    });
   });
 
   describe('findUsagesByFoodId', () => {
@@ -346,5 +401,193 @@ describe('LocalRecipeRepository (real SQLite via better-sqlite3)', () => {
 
       expect(usages).toEqual([]);
     });
+  });
+});
+
+describe('recipes migration v3 -> v4 (is_archived backfill)', () => {
+  // Mirrors schema.ts as it existed before this ticket (schema version 3): the `recipes`
+  // table has no `is_archived` column yet. Every table used by `modelClasses` must be
+  // present here too (CollectionMap validates static table <-> schema table pairing at
+  // Database construction), so this otherwise-unused fixture repeats the rest of the
+  // pre-ticket schema verbatim, not just the `recipes` table under test.
+  const schemaV3 = appSchema({
+    version: 3,
+    tables: [
+      tableSchema({
+        name: 'user_profiles',
+        columns: [
+          { name: 'name', type: 'string' },
+          { name: 'daily_calorie_goal', type: 'number' },
+          { name: 'protein_goal', type: 'number' },
+          { name: 'carb_goal', type: 'number' },
+          { name: 'fat_goal', type: 'number' },
+          { name: 'start_weight', type: 'number' },
+          { name: 'current_weight', type: 'number' },
+          { name: 'target_weight', type: 'number' },
+          { name: 'sex', type: 'string' },
+          { name: 'age', type: 'number' },
+          { name: 'height', type: 'number' },
+          { name: 'activity_level', type: 'string' },
+          { name: 'singleton', type: 'number' },
+          { name: 'created_at', type: 'number' },
+          { name: 'updated_at', type: 'number' },
+        ],
+      }),
+      tableSchema({
+        name: 'foods',
+        columns: [
+          { name: 'name', type: 'string' },
+          { name: 'brand', type: 'string', isOptional: true },
+          { name: 'calories', type: 'number' },
+          { name: 'protein', type: 'number' },
+          { name: 'carbs', type: 'number' },
+          { name: 'fat', type: 'number' },
+          { name: 'fiber', type: 'number', isOptional: true },
+          { name: 'sugar', type: 'number', isOptional: true },
+          { name: 'reference_quantity', type: 'number' },
+          { name: 'reference_unit', type: 'string' },
+          { name: 'serving_quantity', type: 'number', isOptional: true },
+          { name: 'serving_unit', type: 'string', isOptional: true },
+          { name: 'category', type: 'string', isOptional: true },
+          { name: 'barcode', type: 'string', isOptional: true },
+          { name: 'source', type: 'string', isOptional: true },
+          { name: 'is_favorite', type: 'boolean' },
+          { name: 'is_archived', type: 'boolean' },
+          { name: 'created_at', type: 'number' },
+          { name: 'updated_at', type: 'number' },
+        ],
+      }),
+      tableSchema({
+        name: 'recipes',
+        columns: [
+          { name: 'name', type: 'string' },
+          { name: 'servings', type: 'number' },
+          { name: 'notes', type: 'string', isOptional: true },
+          { name: 'is_favorite', type: 'boolean' },
+          { name: 'created_at', type: 'number' },
+          { name: 'updated_at', type: 'number' },
+        ],
+      }),
+      tableSchema({
+        name: 'recipe_ingredients',
+        columns: [
+          { name: 'recipe_id', type: 'string', isIndexed: true },
+          { name: 'food_id', type: 'string', isIndexed: true },
+          { name: 'quantity', type: 'number' },
+          { name: 'unit', type: 'string' },
+        ],
+      }),
+      tableSchema({
+        name: 'diary_entries',
+        columns: [
+          { name: 'date', type: 'number', isIndexed: true },
+          { name: 'meal_type', type: 'string' },
+          { name: 'food_id', type: 'string', isOptional: true, isIndexed: true },
+          { name: 'recipe_id', type: 'string', isOptional: true, isIndexed: true },
+          { name: 'quantity', type: 'number' },
+          { name: 'unit', type: 'string' },
+          { name: 'calories', type: 'number' },
+          { name: 'protein', type: 'number' },
+          { name: 'carbs', type: 'number' },
+          { name: 'fat', type: 'number' },
+          { name: 'created_at', type: 'number' },
+        ],
+      }),
+      tableSchema({
+        name: 'activity_entries',
+        columns: [
+          { name: 'date', type: 'number', isIndexed: true },
+          { name: 'name', type: 'string' },
+          { name: 'duration', type: 'number' },
+          { name: 'calories_burned', type: 'number' },
+          { name: 'notes', type: 'string', isOptional: true },
+        ],
+      }),
+      tableSchema({
+        name: 'weight_entries',
+        columns: [
+          { name: 'date', type: 'number', isIndexed: true },
+          { name: 'weight', type: 'number' },
+          { name: 'notes', type: 'string', isOptional: true },
+        ],
+      }),
+      tableSchema({
+        name: 'badges',
+        columns: [
+          { name: 'type', type: 'string' },
+          { name: 'earned_date', type: 'number' },
+          { name: 'period_start', type: 'number' },
+          { name: 'period_end', type: 'number' },
+        ],
+      }),
+    ],
+  });
+
+  let dbPath: string;
+
+  beforeEach(() => {
+    dbPath = path.join(
+      os.tmpdir(),
+      `kcalvi-recipes-migration-${Date.now()}-${Math.random().toString(36).slice(2)}.sqlite`,
+    );
+  });
+
+  afterEach(() => {
+    // The SQLite adapters opened below are never explicitly closed (WatermelonDB's
+    // Node SQLite adapter exposes no public close()), so just remove the on-disk
+    // files -- an open file descriptor doesn't stop unlink on macOS/Linux.
+    for (const suffix of ['', '-wal', '-shm']) {
+      try {
+        fs.unlinkSync(dbPath + suffix);
+      } catch {
+        // Sidecar file may not exist -- nothing to clean up.
+      }
+    }
+  });
+
+  it('keeps every pre-existing recipe visible via search() after upgrading a populated v3 database to v4', async () => {
+    // Step 1: a fresh v3-only install (no `migrations` passed -- this is
+    // `setUpWithSchema`, not a migration), with two recipes created exactly as
+    // Sprint 2's LocalRecipeRepository.create() would have, minus `is_archived`
+    // since that column doesn't exist yet at this schema version.
+    const v3Adapter = new SQLiteAdapter({ dbName: dbPath, schema: schemaV3 });
+    const v3Database = new Database({ adapter: v3Adapter, modelClasses });
+
+    const recipeIds = await v3Database.write(async () => {
+      const collection = v3Database.get<RecipeModel>('recipes');
+      const first = await collection.create((row) => {
+        row.name = 'Salade de riz';
+        row.servings = 4;
+        row.isFavorite = false;
+      });
+      const second = await collection.create((row) => {
+        row.name = 'Soupe de courgettes';
+        row.servings = 2;
+        row.isFavorite = true;
+      });
+      return [first.id, second.id];
+    });
+
+    // Step 2: reopen the same on-disk file with the current (v4) schema and
+    // migrations. The file's stored PRAGMA user_version is still 3, so the adapter
+    // runs schemaMigrations, which is what actually exercises the toVersion: 4 step
+    // (addColumns + the NULL -> false backfill), not just a fresh v4 install.
+    const v4Adapter = new SQLiteAdapter({ dbName: dbPath, schema, migrations });
+    const v4Database = new Database({ adapter: v4Adapter, modelClasses });
+    const repository = new LocalRecipeRepository(v4Database);
+
+    // Without the mandatory backfill step, both rows would read is_archived = null
+    // and Q.where('is_archived', false) (used by search()) would match neither --
+    // this assertion is exactly the "all existing recipes disappear" regression
+    // the ticket calls out.
+    const results = await searchOnce(repository, '');
+    expect(results.map((recipe) => recipe.id).sort()).toEqual([...recipeIds].sort());
+    expect(results.every((recipe) => recipe.isArchived === false)).toBe(true);
+
+    // findById also reflects the backfilled value, not null/undefined.
+    const found = await repository.findById(recipeIds[0] as string);
+    expect(found.ok).toBe(true);
+    if (!found.ok) return;
+    expect(found.value.isArchived).toBe(false);
   });
 });

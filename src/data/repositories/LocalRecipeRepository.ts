@@ -18,6 +18,7 @@ export function toDomainRecipe(record: RecipeModel): Recipe {
     servings: record.servings,
     notes: optional(record.notes),
     isFavorite: record.isFavorite,
+    isArchived: record.isArchived,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   };
@@ -63,7 +64,7 @@ export class LocalRecipeRepository implements RecipeRepository {
     const likeQuery = `%${Q.sanitizeLikeString(query)}%`;
     return this.database
       .get<RecipeModel>('recipes')
-      .query(Q.where('name', Q.like(likeQuery)))
+      .query(Q.where('name', Q.like(likeQuery)), Q.where('is_archived', false))
       .observe()
       .pipe(map((records) => records.map(toDomainRecipe)));
   }
@@ -80,6 +81,7 @@ export class LocalRecipeRepository implements RecipeRepository {
         row.servings = input.servings;
         row.notes = input.notes;
         row.isFavorite = input.isFavorite ?? false;
+        row.isArchived = false;
       });
 
       // `recipe.id` is generated client-side by prepareCreate (before the write commits),
@@ -155,23 +157,20 @@ export class LocalRecipeRepository implements RecipeRepository {
   }
 
   async archive(id: string): Promise<Result<void, DomainError>> {
-    // Unlike `foods`, the `recipes` table has no `is_archived` column (schema.ts), and this
-    // sprint explicitly excludes schema/model changes (no migration this sprint -- see
-    // SPRINT2-DETAILS.MD intro). There is nothing to persist an "archived" state into yet,
-    // and no screen calls this method this sprint. Rather than silently no-op'ing or
-    // reusing destroyPermanently() (which would permanently discard the recipe -- not what
-    // "archive" implies), this returns an explicit error so the gap is visible instead of
-    // hidden behind a signature that looks like it works. Needs a product/schema decision
-    // (e.g. an `is_archived` migration) before any "archive a recipe" UI is wired up.
+    let record: RecipeModel;
     try {
-      await this.database.get<RecipeModel>('recipes').find(id);
+      record = await this.database.get<RecipeModel>('recipes').find(id);
     } catch {
       return err({ code: 'RECIPE_NOT_FOUND', message: `Recipe ${id} not found` });
     }
-    return err({
-      code: 'RECIPE_ARCHIVE_NOT_SUPPORTED',
-      message: 'Recipe archiving is not supported yet: the recipes table has no is_archived column',
-    });
+
+    await this.database.write(() =>
+      record.update((row) => {
+        row.isArchived = true;
+      }),
+    );
+
+    return ok(undefined);
   }
 
   async delete(id: string): Promise<Result<void, DomainError>> {

@@ -39,5 +39,15 @@ export const migrations = schemaMigrations({
         ),
       ],
     },
+    {
+      toVersion: 4,
+      steps: [
+        addColumns({ table: 'recipes', columns: [{ name: 'is_archived', type: 'boolean' }] }),
+        // addColumns backfills existing rows with NULL, which the model would read back as
+        // null rather than false -- the exact null/undefined class of bug fixed in KCAL-152.
+        // Normalize the existing rows explicitly.
+        unsafeExecuteSql('UPDATE recipes SET is_archived = 0 WHERE is_archived IS NULL;'),
+      ],
+    },
   ],
 });
