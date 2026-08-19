@@ -21,7 +21,7 @@ import HeroCard from '@/ui/HeroCard';
 import SearchField from '@/ui/SearchField';
 import Text from '@/ui/Text';
 import type { Theme } from '@/ui/theme';
-import { formatInteger } from '@/utils/format';
+import { formatInteger, unitLabel } from '@/utils/format';
 
 type TFunction = (key: string, options?: Record<string, unknown>) => string;
 
@@ -29,9 +29,6 @@ type TFunction = (key: string, options?: Record<string, unknown>) => string;
  * French kcal label for a food card (KCAL-158): "64 kcal pour 100 g" / "24 kcal pour 100 ml" /
  * "78 kcal par unité" -- never "78 kcal pour 1 unité": a `referenceUnit === 'unit'` food always
  * has `referenceQuantity = 1`, so the "pour N unité" phrasing would read oddly.
- * Deliberately kept local and simple: a shared `unitLabel()` helper is being extracted into
- * `src/utils/format.ts` by a parallel workstream (RecipeFormScreen/RecipeDetailScreen already
- * have their own copy of it); this LibraryScreen usage will be consolidated with it later.
  */
 function foodKcalLabel(t: TFunction, food: Food): string {
   const kcal = formatInteger(food.calories);
@@ -41,7 +38,7 @@ function foodKcalLabel(t: TFunction, food: Food): string {
   return t('library.food.kcalPerReference', {
     kcal,
     quantity: formatInteger(food.referenceQuantity),
-    unit: food.referenceUnit,
+    unit: unitLabel(t, food.referenceUnit),
   });
 }
 
