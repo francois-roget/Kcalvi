@@ -13,9 +13,10 @@ export type ToggleProps = {
   value: boolean;
   onValueChange: (value: boolean) => void;
   disabled?: boolean;
+  testID?: string;
 };
 
-export function Toggle({ value, onValueChange, disabled }: ToggleProps) {
+export function Toggle({ value, onValueChange, disabled, testID }: ToggleProps) {
   const theme = useTheme() as Theme;
 
   const thumbStyle = useAnimatedStyle(() => ({
@@ -30,6 +31,7 @@ export function Toggle({ value, onValueChange, disabled }: ToggleProps) {
 
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="switch"
       accessibilityState={{ checked: value, disabled: Boolean(disabled) }}
       disabled={disabled}

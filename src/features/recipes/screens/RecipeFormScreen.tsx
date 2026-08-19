@@ -31,7 +31,8 @@ import SearchField from '@/ui/SearchField';
 import Text from '@/ui/Text';
 import TextField from '@/ui/TextField';
 import type { Theme } from '@/ui/theme';
-import { formatDecimal, formatInteger, parseLocaleNumber } from '@/utils/format';
+import Toggle from '@/ui/Toggle';
+import { formatDecimal, formatInteger, parseLocaleNumber, unitLabel } from '@/utils/format';
 
 // Light debounce for the ingredient picker's food search (mirrors LibraryScreen's KCAL-103 pattern).
 const SEARCH_DEBOUNCE_MS = 250;
@@ -64,11 +65,13 @@ type IngredientDraft = {
 type RecipeFormValues = {
   name: string;
   servings: string;
+  isFavorite: boolean;
 };
 
 const DEFAULT_VALUES: RecipeFormValues = {
   name: '',
   servings: '1',
+  isFavorite: false,
 };
 
 const Safe = styled(SafeAreaView)`
@@ -149,13 +152,6 @@ function toNumberOrUndefined(text: string): number | undefined {
   const trimmed = text.trim();
   if (trimmed === '') return undefined;
   return parseLocaleNumber(trimmed);
-}
-
-/** Translates a unit code (e.g. `g`, `ml`, `unit`), falling back to the raw stored value for
- * any code outside the known set -- defensive only, since Food's reference/serving units are
- * already constrained to that set by FoodFormScreen. */
-function unitLabel(t: (key: string, options?: Record<string, unknown>) => string, unit: string) {
-  return t(`recipeForm.units.${unit}`, { defaultValue: unit });
 }
 
 /**
@@ -312,7 +308,14 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
       }
 
       const { recipe, items } = result.value;
-      reset({ name: recipe.name, servings: numberToText(recipe.servings) });
+      // KCAL-161: preload isFavorite too -- LocalRecipeRepository.update only overwrites a
+      // field when it's !== undefined, so once onValid starts sending isFavorite it becomes
+      // authoritative. Skipping this preload would silently un-favorite the recipe on save.
+      reset({
+        name: recipe.name,
+        servings: numberToText(recipe.servings),
+        isFavorite: recipe.isFavorite,
+      });
       setIngredients(
         items.map(({ ingredient, food }) => {
           const { displayQuantity, displayUnit } = deriveIngredientDisplay(food, ingredient);
@@ -475,6 +478,11 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
     setIngredients((prev) => prev.filter((draft) => draft.tempId !== tempId));
   }
 
+  // KCAL-155: a recipe with zero ingredients has no product value (per-portion calories
+  // would read 0), so the save action is structurally disabled -- visible before the tap,
+  // not revealed as an error after it. Kept in sync at both submit entry points below.
+  const canSubmit = ingredients.length > 0 && !submitting;
+
   async function onValid(values: RecipeFormValues) {
     if (ingredients.length === 0) {
       setRootError(t('recipeForm.errors.noIngredients'));
@@ -488,6 +496,7 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
       name: values.name.trim(),
       servings: parseLocaleNumber(values.servings),
       notes: undefined,
+      isFavorite: values.isFavorite,
       ingredients: ingredients.map((draft) => ({
         foodId: draft.food.id,
         quantity: draft.referenceQuantity,
@@ -540,7 +549,8 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
           label={t('recipeForm.header.save')}
           variant="ghost"
           size="md"
-          disabled={submitting}
+          disabled={!canSubmit}
+          accessibilityHint={canSubmit ? undefined : t('recipeForm.submitDisabledHint')}
           onPress={handleSubmit(onValid)}
         />
       </HeaderRow>
@@ -592,6 +602,7 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
                     value={field.value}
                     onChangeText={field.onChange}
                     error={errors.servings?.message}
+                    hint={t('recipeForm.servingsHint', { count: servingsForCalc })}
                   />
                 )}
               />
@@ -697,24 +708,43 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
             </Text>
           ) : null}
 
+          <Card tone="light">
+            <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text variant="body">{t('recipeForm.favorite')}</Text>
+              <Controller
+                control={control}
+                name="isFavorite"
+                render={({ field }) => (
+                  <Toggle
+                    testID="recipeForm.favorite"
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  />
+                )}
+              />
+            </Row>
+          </Card>
+
           <Button
             testID="recipeForm.submit"
             label={t('recipeForm.submit')}
             variant="primary"
             onPress={handleSubmit(onValid)}
-            disabled={submitting}
+            disabled={!canSubmit}
+            accessibilityHint={canSubmit ? undefined : t('recipeForm.submitDisabledHint')}
           />
         </Content>
       </ScrollView>
 
-      <BottomSheet visible={pickerVisible} onClose={closeIngredientPicker}>
+      <BottomSheet visible={pickerVisible} onClose={closeIngredientPicker} minHeightRatio={0.7}>
         {pickerStep === 'search' ? (
-          <View testID="recipeForm.ingredientPicker.search" style={{ flexShrink: 1 }}>
+          <View testID="recipeForm.ingredientPicker.search" style={{ flex: 1, flexShrink: 1 }}>
             <Text variant="h2">{t('recipeForm.picker.searchTitle')}</Text>
             <View style={{ marginTop: 12 }}>
               <SearchField
                 value={ingredientQuery}
                 onChangeText={setIngredientQuery}
+                onClear={() => setIngredientQuery('')}
                 placeholder={t('recipeForm.picker.searchPlaceholder')}
                 accessibilityLabel={t('recipeForm.picker.searchPlaceholder')}
                 autoCapitalize="none"
@@ -723,10 +753,7 @@ export function RecipeFormScreen({ route, navigation }: RecipeFormScreenProps) {
               />
             </View>
 
-            <ScrollView
-              style={{ marginTop: 12, maxHeight: 320, flexShrink: 1 }}
-              keyboardShouldPersistTaps="handled"
-            >
+            <ScrollView style={{ marginTop: 12, flex: 1 }} keyboardShouldPersistTaps="handled">
               {foodResults.length === 0 ? (
                 <Text variant="bodySm" color="text.tertiary" style={{ paddingVertical: 12 }}>
                   {t('recipeForm.picker.noResults')}

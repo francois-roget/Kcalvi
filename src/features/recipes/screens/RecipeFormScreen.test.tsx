@@ -41,8 +41,45 @@ jest.mock('react-native-reanimated', () => {
 // RecipeFormScreen imports `database` (the real WatermelonDB SQLiteAdapter instance) at
 // module scope for its edit-mode load (getRecipeWithIngredients). Constructing the real
 // adapter has native/JSI side effects at import time that don't work under Jest, so it's
-// swapped for an inert stub -- none of these tests exercise edit mode.
+// swapped for an inert stub; the edit-mode load itself is driven entirely through the
+// `getRecipeWithIngredients` mock below, which never touches this stub.
 jest.mock('@/data/database', () => ({ database: {} }));
+
+// KCAL-161's edit-mode preload test needs to control what the load resolves to (in
+// particular `recipe.isFavorite`) without exercising the real WatermelonDB query chain.
+jest.mock('@/data/repositories/getRecipeWithIngredients', () => ({
+  getRecipeWithIngredients: (...args: unknown[]) => mockGetRecipeWithIngredients(...args),
+}));
+
+// The real Toggle (favorite field) pulls in Reanimated/Worklets, whose native module isn't
+// available under Jest -- same rationale as FoodFormScreen.test.tsx's stub. Swapped for a
+// plain Pressable test double that still reports accessibilityState.checked so the KCAL-161
+// tests can assert the preloaded/toggled value.
+jest.mock('@/ui/Toggle', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { Pressable, Text: RNText } = require('react-native');
+  return {
+    __esModule: true,
+    default: ({
+      value,
+      onValueChange,
+      testID,
+    }: {
+      value: boolean;
+      onValueChange: (v: boolean) => void;
+      testID?: string;
+    }) => (
+      <Pressable
+        testID={testID}
+        accessibilityRole="switch"
+        accessibilityState={{ checked: value }}
+        onPress={() => onValueChange(!value)}
+      >
+        <RNText>{value ? 'on' : 'off'}</RNText>
+      </Pressable>
+    ),
+  };
+});
 
 jest.mock('@/data/repositories', () => ({
   foodRepository: {
@@ -65,6 +102,7 @@ jest.mock('@/data/repositories', () => ({
 const mockFoodSearch = jest.fn();
 const mockRecipeCreate = jest.fn();
 const mockRecipeUpdate = jest.fn();
+const mockGetRecipeWithIngredients = jest.fn();
 
 function makeFood(overrides: Partial<Food> = {}): Food {
   return {
@@ -133,6 +171,10 @@ beforeEach(() => {
   mockFoodSearch.mockImplementation(() => new BehaviorSubject<Food[]>([makeFood()]));
   mockRecipeCreate.mockResolvedValue({ ok: true, value: makeRecipe() });
   mockRecipeUpdate.mockResolvedValue({ ok: true, value: makeRecipe() });
+  mockGetRecipeWithIngredients.mockResolvedValue({
+    ok: true,
+    value: { recipe: makeRecipe(), items: [] },
+  });
 });
 
 describe('RecipeFormScreen — total recalculation (KCAL-130/131/134)', () => {
@@ -201,13 +243,17 @@ describe('RecipeFormScreen — total recalculation (KCAL-130/131/134)', () => {
 });
 
 describe('RecipeFormScreen — submit validation (KCAL-135)', () => {
-  it('blocks submit and shows a root error when there are no ingredients', async () => {
-    const { getByTestId, findByText, navigation } = await renderScreen();
+  // KCAL-155: the "no ingredients" root error (recipeForm.errors.noIngredients) used to be
+  // reachable by tapping submit on an empty recipe. Now the button is disabled at that point
+  // (see the KCAL-155 describe block below), so `onValid`'s own `ingredients.length === 0`
+  // guard -- kept as defense in depth -- is unreachable from the UI. This test now asserts
+  // the actual current behavior: the tap is a no-op because the button is inert.
+  it('does not submit when there are no ingredients (button is disabled)', async () => {
+    const { getByTestId, navigation } = await renderScreen();
 
     await fireEvent.changeText(getByTestId('recipeForm.name'), 'Salade de quinoa');
     await fireEvent.press(getByTestId('recipeForm.submit'));
 
-    await findByText(i18n.t('recipeForm.errors.noIngredients'));
     expect(mockRecipeCreate).not.toHaveBeenCalled();
     expect(navigation.goBack).not.toHaveBeenCalled();
   });
@@ -258,5 +304,149 @@ describe('RecipeFormScreen — submit validation (KCAL-135)', () => {
       }),
     );
     expect(navigation.goBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends isFavorite in the create payload', async () => {
+    const food = makeFood();
+    const utils = await renderScreen();
+    const { getByTestId } = utils;
+
+    await fireEvent.changeText(getByTestId('recipeForm.name'), 'Salade de quinoa');
+    await openQuantityStepFor(utils, food);
+    await fireEvent.changeText(getByTestId('recipeForm.ingredientPicker.quantityField'), '150');
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
+
+    await fireEvent.press(getByTestId('recipeForm.favorite'));
+    await fireEvent.press(getByTestId('recipeForm.submit'));
+
+    await waitFor(() => expect(mockRecipeCreate).toHaveBeenCalledTimes(1));
+    expect(mockRecipeCreate).toHaveBeenCalledWith(expect.objectContaining({ isFavorite: true }));
+  });
+});
+
+describe('RecipeFormScreen — save button gated on ingredients (KCAL-155)', () => {
+  it('disables both submit buttons on an empty form, with a VoiceOver hint', async () => {
+    const { getByTestId } = await renderScreen();
+
+    const headerSave = getByTestId('recipeForm.header.save');
+    const footerSubmit = getByTestId('recipeForm.submit');
+
+    expect(headerSave.props.accessibilityState).toEqual(
+      expect.objectContaining({ disabled: true }),
+    );
+    expect(footerSubmit.props.accessibilityState).toEqual(
+      expect.objectContaining({ disabled: true }),
+    );
+    expect(headerSave.props.accessibilityHint).toBe(i18n.t('recipeForm.submitDisabledHint'));
+    expect(footerSubmit.props.accessibilityHint).toBe(i18n.t('recipeForm.submitDisabledHint'));
+  });
+
+  it('enables both buttons after the first ingredient is added, and disables them again after it is removed', async () => {
+    const food = makeFood();
+    const utils = await renderScreen();
+    const { getByTestId, findByTestId } = utils;
+
+    await openQuantityStepFor(utils, food);
+    await fireEvent.changeText(getByTestId('recipeForm.ingredientPicker.quantityField'), '150');
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
+
+    await waitFor(() => {
+      expect(getByTestId('recipeForm.header.save').props.accessibilityState).toEqual(
+        expect.objectContaining({ disabled: false }),
+      );
+      expect(getByTestId('recipeForm.submit').props.accessibilityState).toEqual(
+        expect.objectContaining({ disabled: false }),
+      );
+    });
+    expect(getByTestId('recipeForm.header.save').props.accessibilityHint).toBeUndefined();
+    expect(getByTestId('recipeForm.submit').props.accessibilityHint).toBeUndefined();
+
+    const deleteButton = await findByTestId(/^recipeForm\.ingredient\..*\.delete$/);
+    await fireEvent.press(deleteButton);
+
+    await waitFor(() => {
+      expect(getByTestId('recipeForm.header.save').props.accessibilityState).toEqual(
+        expect.objectContaining({ disabled: true }),
+      );
+      expect(getByTestId('recipeForm.submit').props.accessibilityState).toEqual(
+        expect.objectContaining({ disabled: true }),
+      );
+    });
+  });
+});
+
+describe('RecipeFormScreen — favorite toggle (KCAL-161)', () => {
+  it('preloads an existing favorite recipe with the toggle already active, and keeps it favorite on save without touching it', async () => {
+    const favoriteRecipe = makeRecipe({ id: 'recipe-fav', isFavorite: true });
+    // The screen requires >= 1 ingredient to enable submit (KCAL-155); the preload path
+    // populates `ingredients` from `items`, so give it one to keep this a realistic edit.
+    const food = makeFood();
+    mockGetRecipeWithIngredients.mockResolvedValue({
+      ok: true,
+      value: {
+        recipe: favoriteRecipe,
+        items: [
+          {
+            ingredient: {
+              id: 'ing-1',
+              recipeId: favoriteRecipe.id,
+              foodId: food.id,
+              quantity: 150,
+              unit: 'g',
+            },
+            food,
+          },
+        ],
+      },
+    });
+
+    const { findByTestId } = await renderScreen({ recipeId: favoriteRecipe.id });
+
+    // Regression check for the KCAL-161 data-loss trap: the toggle must reflect the
+    // preloaded value, not the form's default (false).
+    const toggle = await findByTestId('recipeForm.favorite');
+    expect(toggle.props.accessibilityState).toEqual(expect.objectContaining({ checked: true }));
+
+    await fireEvent.press(await findByTestId('recipeForm.submit'));
+
+    await waitFor(() => expect(mockRecipeUpdate).toHaveBeenCalledTimes(1));
+    expect(mockRecipeUpdate).toHaveBeenCalledWith(
+      favoriteRecipe.id,
+      expect.objectContaining({ isFavorite: true }),
+    );
+  });
+
+  it('un-favorites on save when the toggle is switched off', async () => {
+    const favoriteRecipe = makeRecipe({ id: 'recipe-fav', isFavorite: true });
+    const food = makeFood();
+    mockGetRecipeWithIngredients.mockResolvedValue({
+      ok: true,
+      value: {
+        recipe: favoriteRecipe,
+        items: [
+          {
+            ingredient: {
+              id: 'ing-1',
+              recipeId: favoriteRecipe.id,
+              foodId: food.id,
+              quantity: 150,
+              unit: 'g',
+            },
+            food,
+          },
+        ],
+      },
+    });
+
+    const { findByTestId } = await renderScreen({ recipeId: favoriteRecipe.id });
+
+    await fireEvent.press(await findByTestId('recipeForm.favorite'));
+    await fireEvent.press(await findByTestId('recipeForm.submit'));
+
+    await waitFor(() => expect(mockRecipeUpdate).toHaveBeenCalledTimes(1));
+    expect(mockRecipeUpdate).toHaveBeenCalledWith(
+      favoriteRecipe.id,
+      expect.objectContaining({ isFavorite: false }),
+    );
   });
 });

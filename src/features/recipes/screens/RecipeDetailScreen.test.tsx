@@ -161,6 +161,27 @@ describe('RecipeDetailScreen — rendering (KCAL-138/139/140)', () => {
     await findByText(i18n.t('recipeDetail.ingredients.kcalValue', { value: formatInteger(400) }));
   });
 
+  // KCAL-158: ingredient rows used to render `ingredient.unit` raw, so a "unit"-referenced
+  // food's ingredient row showed the literal code "unit" instead of the French "unité".
+  it('translates a "unit"-referenced ingredient\'s unit instead of showing the raw code', async () => {
+    const EGG = makeFood({ id: 'food-3', name: 'Oeuf', calories: 70, referenceUnit: 'unit' });
+    mockGetRecipeWithIngredients.mockResolvedValue({
+      ok: true,
+      value: {
+        recipe: makeRecipe(),
+        items: [
+          { ingredient: makeIngredient({ id: 'ri-3', foodId: 'food-3', unit: 'unit' }), food: EGG },
+        ],
+      },
+    });
+
+    const { findByText, queryByText } = await renderScreen();
+
+    await findByText('Oeuf');
+    await findByText(i18n.t('recipeForm.units.unit'), { exact: false });
+    expect(queryByText(/^150 unit$/)).toBeNull();
+  });
+
   it('renders the not-found error state when the recipe fails to load', async () => {
     mockGetRecipeWithIngredients.mockResolvedValue({
       ok: false,

@@ -22,7 +22,7 @@ import ListCard from '@/ui/ListCard';
 import ListRow from '@/ui/ListRow';
 import Text from '@/ui/Text';
 import type { Theme } from '@/ui/theme';
-import { formatDecimal, formatInteger } from '@/utils/format';
+import { formatDecimal, formatInteger, unitLabel } from '@/utils/format';
 
 type RecipeWithIngredients = {
   recipe: Recipe;
@@ -259,7 +259,7 @@ export function RecipeDetailScreen({ route, navigation }: RecipeDetailScreenProp
                 <ListRow
                   key={ingredient.id}
                   label={food.name}
-                  sublabel={`${formatDecimal(ingredient.quantity)} ${ingredient.unit}`}
+                  sublabel={`${formatDecimal(ingredient.quantity)} ${unitLabel(t, ingredient.unit)}`}
                   value={t('recipeDetail.ingredients.kcalValue', {
                     value: formatInteger(
                       calculateProportionalNutrition(food, ingredient.quantity).calories,

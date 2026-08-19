@@ -72,7 +72,7 @@ dans DiaryEntry à la validation (RM16).
 
 ## 2j · Créer un aliment → `features/library/screens/FoodFormScreen`
 Header Annuler / Nouvel aliment / Enregistrer. Champ Nom. Chips de référence : pour 100 g / 100 ml / par unité.
-Champs Calories, Protéines, Glucides, Lipides (2 par ligne). Portions rapides : pills existantes + « + Ajouter ».
+Champs Calories, Protéines, Glucides, Lipides (2 par ligne). Portions usuelles : pills existantes + « + Ajouter ».
 Card azure.100 d'aperçu (« Aperçu pour 40 g · 106 kcal · P 5,7 g · G 0,6 g · L 8,8 g »).
 Toggle favori. Button primary. Validation RM14 au submit via `domain/validation`.
 
@@ -83,9 +83,12 @@ ListCard des ingrédients (nom + quantité en 500 quaternary, kcal à droite). L
 Bas : Button secondary « Dupliquer » (flex 1) + Button primary « Ajouter au repas » (flex 2).
 
 ## 2l · Créer une recette → `features/recipes/screens/RecipeFormScreen`
-Champ Nom, champs Portions / Poids total. ListCard des ingrédients + encadré pointillé
-« + Ajouter un ingrédient ». HeroCard « Par portion (calcul auto) » avec kcal et macros recalculées
-en direct (RM03 puis F09). Button primary.
+Champ Nom, champs Nombre de portions (+ aide « Cette recette se divise en N portions. Les valeurs
+affichées ci-dessous sont pour une portion. ») / Poids total. Picker d'ingrédient : chip de mode
+« En portions usuelles » à côté du mode par unité de référence, feuille à hauteur stable ~70 %
+d'écran (KCAL-160). ListCard des ingrédients + encadré pointillé « + Ajouter un ingrédient ».
+HeroCard « Par portion (calcul auto) » avec kcal et macros recalculées en direct (RM03 puis F09).
+Card tone="light" Favori + Toggle, identique à 2j (KCAL-161), juste avant le Button primary.
 
 ## 2m · Activité → `features/activity/screens/ActivityFormScreen`
 Header Annuler / Activité. Grille 2 colonnes de types (Marche, Course, Vélo, Natation, Musculation, Autre) :
