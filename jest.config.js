@@ -17,6 +17,13 @@ module.exports = {
       displayName: 'App',
       preset: 'jest-expo',
       testPathIgnorePatterns: ['/node_modules/', '/.maestro/'],
+      // Jest's 5s default is too tight for the first test of a screen suite on CI. That test
+      // pays the one-off cost of booting the React Native / styled-components / i18n module
+      // graph on top of its own work -- locally that is ~220ms against ~35ms for the following
+      // tests in the same file, but the 2-vCPU GitHub runner is roughly an order of magnitude
+      // slower (whole screen suites take 7-11s there vs ~1s locally), which pushed the first
+      // RecipeFormScreen test over the limit while the identical ones after it passed.
+      testTimeout: 30000,
     },
     {
       // Tests that hit a real SQLite database (better-sqlite3) through the real
@@ -42,6 +49,9 @@ module.exports = {
         ],
       },
       moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+      // Same reasoning as the App project: these tests set up a real SQLite database per case,
+      // which is comfortably under 5s locally but not guaranteed to be on a loaded CI runner.
+      testTimeout: 30000,
     },
   ],
 };
