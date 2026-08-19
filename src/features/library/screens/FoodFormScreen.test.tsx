@@ -2,6 +2,7 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import i18n from '@/i18n';
 import type { Food } from '@/domain/types';
+import { formatInteger } from '@/utils/format';
 import type { FoodFormScreenProps } from '@/navigation/types';
 import { ThemeProvider } from '@/bootstrap/providers/ThemeProvider';
 
@@ -14,6 +15,18 @@ jest.mock('@/data/repositories', () => ({
     findById: jest.fn(),
   },
 }));
+
+// @expo/vector-icons pulls in expo-font -> expo-asset, which isn't hoisted to the root
+// node_modules in this environment, breaking Node's module resolution under Jest (same
+// issue documented in RecipeFormScreen.test.tsx). KCAL-163e's per-portion delete icon uses
+// Ionicons, so the same lightweight stub is needed here.
+jest.mock('@expo/vector-icons', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { Text: RNText } = require('react-native');
+  return {
+    Ionicons: ({ name }: { name: string }) => <RNText>{name}</RNText>,
+  };
+});
 
 // The real Toggle (favorite field) pulls in Reanimated/Worklets, whose native module
 // isn't available under Jest and whose own official mock currently re-triggers the same
@@ -64,6 +77,7 @@ function makeFood(overrides: Partial<Food> = {}): Food {
     referenceUnit: 'g',
     isFavorite: false,
     isArchived: false,
+    portions: [],
     createdAt: new Date('2026-01-01'),
     updatedAt: new Date('2026-01-01'),
     ...overrides,
@@ -184,5 +198,139 @@ describe('FoodFormScreen — edit mode (KCAL-118)', () => {
       expect.objectContaining({ name: 'Riz basmati', calories: 130 }),
     );
     expect(navigation.goBack).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('FoodFormScreen — portions usuelles (KCAL-163e)', () => {
+  it('adds a new portion via "+ Ajouter" and includes it in the submit payload', async () => {
+    const { getByTestId } = await renderScreen();
+
+    await fireEvent.changeText(getByTestId('foodForm.name'), 'Yaourt nature');
+    await fireEvent.changeText(getByTestId('foodForm.calories'), '60');
+
+    await fireEvent.press(getByTestId('foodForm.quickPortions.add'));
+    await fireEvent.changeText(getByTestId('foodForm.quickPortions.label'), '1 pot');
+    await fireEvent.changeText(getByTestId('foodForm.quickPortions.quantity'), '125');
+    await fireEvent.press(getByTestId('foodForm.quickPortions.unit.g'));
+    await fireEvent.press(getByTestId('foodForm.quickPortions.confirm'));
+
+    await fireEvent.press(getByTestId('foodForm.submit'));
+
+    await waitFor(() => expect(foodRepository.create).toHaveBeenCalledTimes(1));
+    expect(foodRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        portions: [{ label: '1 pot', quantity: 125, unit: 'g', position: 0 }],
+      }),
+    );
+  });
+
+  it('preloads existing portions (ordered by position) and lets the user edit one via tap-to-edit', async () => {
+    foodRepository.findById.mockResolvedValue({
+      ok: true,
+      value: makeFood({
+        id: 'food-1',
+        portions: [
+          {
+            id: 'portion-1',
+            foodId: 'food-1',
+            label: '1 pot',
+            quantity: 150,
+            unit: 'g',
+            position: 0,
+          },
+        ],
+      }),
+    });
+
+    const { getByTestId, findByTestId } = await renderScreen({ foodId: 'food-1' });
+
+    await findByTestId('foodForm.quickPortions.pill.portion-1');
+    await fireEvent.press(getByTestId('foodForm.quickPortions.pill.portion-1'));
+
+    // The editor is preloaded with the tapped portion's current values, not blank fields.
+    expect(getByTestId('foodForm.quickPortions.label').props.value).toBe('1 pot');
+    expect(getByTestId('foodForm.quickPortions.quantity').props.value).toBe('150');
+
+    await fireEvent.changeText(getByTestId('foodForm.quickPortions.quantity'), '160');
+    await fireEvent.press(getByTestId('foodForm.quickPortions.confirm'));
+    await fireEvent.press(getByTestId('foodForm.submit'));
+
+    await waitFor(() => expect(foodRepository.update).toHaveBeenCalledTimes(1));
+    expect(foodRepository.update).toHaveBeenCalledWith(
+      'food-1',
+      expect.objectContaining({
+        portions: [{ label: '1 pot', quantity: 160, unit: 'g', position: 0 }],
+      }),
+    );
+  });
+
+  it('deletes a portion via its per-row delete button', async () => {
+    foodRepository.findById.mockResolvedValue({
+      ok: true,
+      value: makeFood({
+        id: 'food-1',
+        portions: [
+          {
+            id: 'portion-1',
+            foodId: 'food-1',
+            label: '1 pot',
+            quantity: 150,
+            unit: 'g',
+            position: 0,
+          },
+        ],
+      }),
+    });
+
+    const { getByTestId, findByTestId, queryByTestId } = await renderScreen({
+      foodId: 'food-1',
+    });
+
+    await findByTestId('foodForm.quickPortions.pill.portion-1');
+    await fireEvent.press(getByTestId('foodForm.quickPortions.delete.portion-1'));
+
+    expect(queryByTestId('foodForm.quickPortions.pill.portion-1')).toBeNull();
+
+    await fireEvent.press(getByTestId('foodForm.submit'));
+
+    await waitFor(() => expect(foodRepository.update).toHaveBeenCalledTimes(1));
+    expect(foodRepository.update).toHaveBeenCalledWith(
+      'food-1',
+      expect.objectContaining({ portions: [] }),
+    );
+  });
+
+  it('the preview card falls back to the reference quantity when there are no portions', async () => {
+    const { getByTestId, getByText } = await renderScreen();
+
+    await fireEvent.changeText(getByTestId('foodForm.name'), 'Pomme');
+    await fireEvent.changeText(getByTestId('foodForm.calories'), '52');
+
+    // Default referenceUnit is 'g' -> referenceQuantityFor('g') === 100.
+    getByText(
+      i18n.t('foodForm.preview.title', {
+        quantity: formatInteger(100),
+        unit: i18n.t('foodForm.units.g'),
+      }),
+    );
+  });
+
+  it('the preview card reads the first portion by ascending position once one is added', async () => {
+    const { getByTestId, getByText } = await renderScreen();
+
+    await fireEvent.changeText(getByTestId('foodForm.name'), 'Yaourt nature');
+    await fireEvent.changeText(getByTestId('foodForm.calories'), '60');
+
+    await fireEvent.press(getByTestId('foodForm.quickPortions.add'));
+    await fireEvent.changeText(getByTestId('foodForm.quickPortions.label'), '1 pot');
+    await fireEvent.changeText(getByTestId('foodForm.quickPortions.quantity'), '125');
+    await fireEvent.press(getByTestId('foodForm.quickPortions.confirm'));
+
+    getByText(
+      i18n.t('foodForm.preview.title', {
+        quantity: formatInteger(125),
+        unit: i18n.t('foodForm.units.g'),
+      }),
+    );
   });
 });

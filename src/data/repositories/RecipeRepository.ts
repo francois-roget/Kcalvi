@@ -7,7 +7,13 @@ export type CreateRecipeInput = Omit<
   'id' | 'createdAt' | 'updatedAt' | 'isFavorite' | 'isArchived'
 > &
   Partial<Pick<Recipe, 'isFavorite' | 'isArchived'>> & {
-    ingredients: { foodId: string; quantity: number; unit: string }[];
+    ingredients: {
+      foodId: string;
+      quantity: number;
+      unit: string;
+      // KCAL-163d: the food_portions row this ingredient was entered via, if any.
+      portionId?: string;
+    }[];
   };
 
 export type UpdateRecipeInput = Partial<CreateRecipeInput>;

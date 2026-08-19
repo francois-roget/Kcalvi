@@ -122,6 +122,7 @@ function makeFood(overrides: Partial<Food> = {}): Food {
     referenceUnit: 'g',
     isFavorite: false,
     isArchived: false,
+    portions: [],
     createdAt: new Date('2026-01-01'),
     updatedAt: new Date('2026-01-01'),
     ...overrides,

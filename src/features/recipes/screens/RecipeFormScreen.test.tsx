@@ -2,10 +2,10 @@ import { BehaviorSubject } from '@nozbe/watermelondb/utils/rx';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import i18n from '@/i18n';
-import type { Food, Recipe } from '@/domain/types';
+import type { Food, FoodPortion, Recipe } from '@/domain/types';
 import type { RecipeFormScreenProps } from '@/navigation/types';
 import { ThemeProvider } from '@/bootstrap/providers/ThemeProvider';
-import { formatInteger } from '@/utils/format';
+import { formatDecimal, formatInteger } from '@/utils/format';
 
 import { RecipeFormScreen } from './RecipeFormScreen';
 
@@ -84,7 +84,7 @@ jest.mock('@/ui/Toggle', () => {
 jest.mock('@/data/repositories', () => ({
   foodRepository: {
     search: (query: string) => mockFoodSearch(query),
-    findById: jest.fn(),
+    findById: (id: string) => mockFoodFindById(id),
     create: jest.fn(),
     update: jest.fn(),
   },
@@ -100,9 +100,21 @@ jest.mock('@/data/repositories', () => ({
 }));
 
 const mockFoodSearch = jest.fn();
+const mockFoodFindById = jest.fn();
 const mockRecipeCreate = jest.fn();
 const mockRecipeUpdate = jest.fn();
 const mockGetRecipeWithIngredients = jest.fn();
+
+// 1 "unité" portion == 50 g, so "3 unité" and "150 g" are the exact same underlying
+// quantity -- the equivalence the KCAL-130 conversion test relies on.
+const EGG_PORTION: FoodPortion = {
+  id: 'portion-egg-unit',
+  foodId: 'food-1',
+  label: 'unité',
+  quantity: 50,
+  unit: 'unit',
+  position: 0,
+};
 
 function makeFood(overrides: Partial<Food> = {}): Food {
   return {
@@ -114,16 +126,20 @@ function makeFood(overrides: Partial<Food> = {}): Food {
     fat: 14,
     referenceQuantity: 100,
     referenceUnit: 'g',
-    // 1 unit == 50 g, so "3 unit" and "150 g" are the exact same underlying quantity --
-    // the equivalence the KCAL-130 conversion test relies on.
-    servingQuantity: 50,
-    servingUnit: 'unit',
     isFavorite: false,
     isArchived: false,
+    portions: [],
     createdAt: new Date('2026-01-01'),
     updatedAt: new Date('2026-01-01'),
     ...overrides,
   };
+}
+
+// `foodRepository.search()` results never carry portions (KCAL-163b); the picker fetches
+// the full record via `findById()` once a food is selected, which is what actually powers
+// the "servings" quick-add mode below. This fixture is what that findById() call resolves to.
+function makeFoodWithPortion(overrides: Partial<Food> = {}): Food {
+  return makeFood({ portions: [EGG_PORTION], ...overrides });
 }
 
 function makeRecipe(overrides: Partial<Recipe> = {}): Recipe {
@@ -169,6 +185,11 @@ async function openQuantityStepFor(utils: Awaited<ReturnType<typeof renderScreen
 beforeEach(() => {
   jest.clearAllMocks();
   mockFoodSearch.mockImplementation(() => new BehaviorSubject<Food[]>([makeFood()]));
+  // Default: the selected food resolves to itself with no portions -- individual tests
+  // override this when they need the "servings" quick-add mode to be available.
+  mockFoodFindById.mockImplementation((id: string) =>
+    Promise.resolve({ ok: true, value: makeFood({ id }) }),
+  );
   mockRecipeCreate.mockResolvedValue({ ok: true, value: makeRecipe() });
   mockRecipeUpdate.mockResolvedValue({ ok: true, value: makeRecipe() });
   mockGetRecipeWithIngredients.mockResolvedValue({
@@ -201,12 +222,15 @@ describe('RecipeFormScreen — total recalculation (KCAL-130/131/134)', () => {
 
   it('adds the equivalent quantity entered in portions and produces the same total (KCAL-130 conversion)', async () => {
     const food = makeFood();
+    // The search result carries no portions (KCAL-163b) -- the picker's findById() lookup,
+    // triggered on selection, is what actually resolves the food WITH its portion.
+    mockFoodFindById.mockResolvedValueOnce({ ok: true, value: makeFoodWithPortion() });
     const utils = await renderScreen();
     const { getByTestId, findAllByText } = utils;
 
     await openQuantityStepFor(utils, food);
-    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.mode.servings'));
-    // 3 units * 50 g/unit == 150 g -- the exact reference-unit quantity used in the test above.
+    await fireEvent.press(await utils.findByTestId('recipeForm.ingredientPicker.mode.servings'));
+    // 3 * 50 g/portion == 150 g -- the exact reference-unit quantity used in the test above.
     await fireEvent.changeText(getByTestId('recipeForm.ingredientPicker.quantityField'), '3');
     await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
 
@@ -448,5 +472,114 @@ describe('RecipeFormScreen — favorite toggle (KCAL-161)', () => {
       favoriteRecipe.id,
       expect.objectContaining({ isFavorite: false }),
     );
+  });
+});
+
+describe('RecipeFormScreen — portion traceability (KCAL-163d)', () => {
+  it('sends the portionId of the food_portions row used when the "servings" quick mode is used', async () => {
+    const food = makeFood();
+    mockFoodFindById.mockResolvedValueOnce({ ok: true, value: makeFoodWithPortion() });
+    const utils = await renderScreen();
+    const { getByTestId } = utils;
+
+    await fireEvent.changeText(getByTestId('recipeForm.name'), 'Salade de quinoa');
+    await openQuantityStepFor(utils, food);
+    await fireEvent.press(await utils.findByTestId('recipeForm.ingredientPicker.mode.servings'));
+    await fireEvent.changeText(getByTestId('recipeForm.ingredientPicker.quantityField'), '3');
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
+
+    await fireEvent.press(getByTestId('recipeForm.submit'));
+
+    await waitFor(() => expect(mockRecipeCreate).toHaveBeenCalledTimes(1));
+    expect(mockRecipeCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ingredients: [
+          { foodId: food.id, quantity: 150, unit: EGG_PORTION.label, portionId: EGG_PORTION.id },
+        ],
+      }),
+    );
+  });
+
+  it('does not send a portionId when the ingredient is entered directly in the reference unit', async () => {
+    const food = makeFood();
+    const utils = await renderScreen();
+    const { getByTestId } = utils;
+
+    await fireEvent.changeText(getByTestId('recipeForm.name'), 'Salade de quinoa');
+    await openQuantityStepFor(utils, food);
+    await fireEvent.changeText(getByTestId('recipeForm.ingredientPicker.quantityField'), '150');
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
+
+    await fireEvent.press(getByTestId('recipeForm.submit'));
+
+    await waitFor(() => expect(mockRecipeCreate).toHaveBeenCalledTimes(1));
+    expect(mockRecipeCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ingredients: [{ foodId: food.id, quantity: 150, unit: 'g', portionId: undefined }],
+      }),
+    );
+  });
+
+  it('resolves the portion label for a preloaded ingredient whose portionId still matches a food portion', async () => {
+    const recipe = makeRecipe({ id: 'recipe-1' });
+    const food = makeFoodWithPortion();
+    mockGetRecipeWithIngredients.mockResolvedValue({
+      ok: true,
+      value: {
+        recipe,
+        items: [
+          {
+            ingredient: {
+              id: 'ing-1',
+              recipeId: recipe.id,
+              foodId: food.id,
+              // 150 g == 3 * the 50 g portion (EGG_PORTION) -- stored quantity is always in
+              // reference units regardless of how it was entered.
+              quantity: 150,
+              unit: EGG_PORTION.label,
+              portionId: EGG_PORTION.id,
+            },
+            food,
+          },
+        ],
+      },
+    });
+
+    const { findByText } = await renderScreen({ recipeId: recipe.id });
+
+    // Displayed as "3,0 unité" (the portion count, not the 150 g reference quantity).
+    await findByText(`${formatDecimal(3)} ${EGG_PORTION.label}`);
+  });
+
+  it("falls back to the reference-unit display when the ingredient's portionId no longer resolves (portion deleted)", async () => {
+    const recipe = makeRecipe({ id: 'recipe-1' });
+    // The food's portions list no longer contains the portion this ingredient was entered
+    // with -- e.g. it was deleted from the food after the ingredient was added.
+    const food = makeFood({ portions: [] });
+    mockGetRecipeWithIngredients.mockResolvedValue({
+      ok: true,
+      value: {
+        recipe,
+        items: [
+          {
+            ingredient: {
+              id: 'ing-1',
+              recipeId: recipe.id,
+              foodId: food.id,
+              quantity: 150,
+              unit: 'unité',
+              portionId: 'portion-deleted',
+            },
+            food,
+          },
+        ],
+      },
+    });
+
+    const { findByText, queryByText } = await renderScreen({ recipeId: recipe.id });
+
+    // Falls back to the reference-unit quantity/unit -- never throws, never shows an error.
+    await findByText(`${formatDecimal(150)} ${i18n.t('recipeForm.units.g')}`);
+    expect(queryByText(`${formatDecimal(3)} unité`)).toBeNull();
   });
 });

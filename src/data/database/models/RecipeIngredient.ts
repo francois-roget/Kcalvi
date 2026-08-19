@@ -15,6 +15,11 @@ export default class RecipeIngredient extends Model {
   @field('food_id') foodId!: string;
   @field('quantity') quantity!: number;
   @field('unit') unit!: string;
+  // KCAL-163d: which food_portions row this ingredient was entered via, if any. May become
+  // a dangling reference if that portion is later deleted from the food -- callers must
+  // handle a lookup miss gracefully (fall back to reference-unit display), never assume it
+  // still resolves.
+  @field('portion_id') portionId?: string;
 
   @relation('recipes', 'recipe_id') recipe!: Relation<Recipe>;
   @relation('foods', 'food_id') food!: Relation<Food>;

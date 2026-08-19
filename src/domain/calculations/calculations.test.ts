@@ -1,4 +1,4 @@
-import type { Food } from '../types';
+import type { Food, FoodPortion } from '../types';
 import {
   calculateBMR,
   calculateBurnedCalories,
@@ -13,7 +13,7 @@ import {
   calculateTDEE,
   calculateWeeklyBudget,
   calculateWeeklyNetConsumption,
-  convertServingsToReferenceQuantity,
+  convertPortionToReferenceQuantity,
   getWeekBoundaries,
 } from './index';
 
@@ -28,6 +28,7 @@ const food: Food = {
   referenceUnit: 'g',
   isFavorite: false,
   isArchived: false,
+  portions: [],
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -52,20 +53,31 @@ describe('calculateProportionalNutrition (RM02)', () => {
   });
 });
 
-describe('convertServingsToReferenceQuantity', () => {
-  it('converts a serving count into the equivalent reference-unit quantity', () => {
-    const eggFood: Food = { ...food, servingQuantity: 60, servingUnit: 'oeuf' };
+describe('convertPortionToReferenceQuantity', () => {
+  it('converts a portion count into the equivalent reference-unit quantity', () => {
+    const eggPortion: FoodPortion = {
+      id: 'portion-1',
+      foodId: food.id,
+      label: '1 oeuf',
+      quantity: 60,
+      unit: 'unit',
+      position: 0,
+    };
 
-    expect(convertServingsToReferenceQuantity(eggFood, 2)).toBe(120);
+    expect(convertPortionToReferenceQuantity(eggPortion, 2)).toBe(120);
   });
 
-  it('falls back to 0 (via the `?? 0` guard) when servingQuantity is undefined', () => {
-    // `food` has no servingQuantity. The function itself falls back to 0 rather than
-    // throwing; per its doc comment, callers are responsible for only invoking it once
-    // `food.servingQuantity` is known to be defined -- this test documents the fallback
-    // as implemented, not as a recommended call pattern.
-    expect(food.servingQuantity).toBeUndefined();
-    expect(convertServingsToReferenceQuantity(food, 3)).toBe(0);
+  it('returns 0 for a zero count', () => {
+    const potPortion: FoodPortion = {
+      id: 'portion-2',
+      foodId: food.id,
+      label: '1 pot',
+      quantity: 150,
+      unit: 'g',
+      position: 0,
+    };
+
+    expect(convertPortionToReferenceQuantity(potPortion, 0)).toBe(0);
   });
 });
 

@@ -31,6 +31,7 @@ export function toDomainRecipeIngredient(record: RecipeIngredientModel): RecipeI
     foodId: record.foodId,
     quantity: record.quantity,
     unit: record.unit,
+    portionId: optional(record.portionId),
   };
 }
 
@@ -92,6 +93,7 @@ export class LocalRecipeRepository implements RecipeRepository {
           row.foodId = ingredient.foodId;
           row.quantity = ingredient.quantity;
           row.unit = ingredient.unit;
+          row.portionId = ingredient.portionId;
         }),
       );
 
@@ -144,6 +146,7 @@ export class LocalRecipeRepository implements RecipeRepository {
               row.foodId = ingredient.foodId;
               row.quantity = ingredient.quantity;
               row.unit = ingredient.unit;
+              row.portionId = ingredient.portionId;
             }),
           ),
         );
