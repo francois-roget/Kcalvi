@@ -9,6 +9,7 @@
   "common": {
     "kcal": "kcal",
     "close": "Fermer",
+    "clearSearch": "Effacer la recherche",
     "starsRating": "{{count}} sur {{max}} étoiles"
   },
   "validation": {

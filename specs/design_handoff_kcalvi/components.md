@@ -47,7 +47,10 @@ au-dessus, gap 6. Unité alignée à droite (caption, quaternary). Valeur : 17/8
 (cas RM14 : valeur négative refusée).
 
 ### SearchField
-Fond sand.300, radius md, padding 12×16, placeholder 14/500 #9AA5AD. Pas d'icône.
+Fond sand.300, radius md, padding 12×16, placeholder 14/500 #9AA5AD. Bouton d'effacement (×)
+conditionnel : visible uniquement quand le champ est non vide (prop `onClear` fournie et valeur
+non vide), aligné à droite, centré verticalement, cible tactile ≥ 44 pt. Absent au repos (champ vide)
+pour préserver la sobriété visuelle.
 
 ### ArcGauge
 `value`, `goal`. react-native-svg : arc `M22 122 A103 103 0 0 1 228 122` dans un viewBox 250×132,

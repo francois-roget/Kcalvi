@@ -9,9 +9,18 @@ export type TextFieldProps = Omit<TextInputProps, 'style'> & {
   unit?: string;
   error?: string;
   numeric?: boolean;
+  /** Optional helper text rendered below the field when there is no error. */
+  hint?: string;
 };
 
-export function TextField({ label, unit, error, numeric = false, ...props }: TextFieldProps) {
+export function TextField({
+  label,
+  unit,
+  error,
+  numeric = false,
+  hint,
+  ...props
+}: TextFieldProps) {
   const theme = useTheme() as Theme;
 
   return (
@@ -55,6 +64,12 @@ export function TextField({ label, unit, error, numeric = false, ...props }: Tex
       {error ? (
         <Text variant="caption" style={{ color: theme.colors.terracotta[600], marginTop: 6 }}>
           {error}
+        </Text>
+      ) : null}
+
+      {!error && hint ? (
+        <Text variant="caption" color="text.tertiary" style={{ marginTop: 6 }}>
+          {hint}
         </Text>
       ) : null}
     </View>
