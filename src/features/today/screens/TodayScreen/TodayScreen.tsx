@@ -1,29 +1,22 @@
 import { useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 
 import { profileRepository } from '@/data/repositories';
+import { TodayHeader } from '@/features/today/components/TodayHeader';
 import { useObservable } from '@/hooks/useObservable';
-import Text from '@/ui/Text';
 
-import { Header, Safe } from './TodayScreen.styles';
+import { Safe } from './TodayScreen.styles';
 
 export function TodayScreen() {
-  const { t } = useTranslation();
   const profileObservable = useMemo(() => profileRepository.observe(), []);
   const profile = useObservable(profileObservable, null);
 
+  // Resolved once per mount rather than per render: the journal day only rolls over at local
+  // midnight (TECHNICAL_SPECS §8.1), so a fresh Date on every render would be churn.
+  const today = useMemo(() => new Date(), []);
+
   return (
     <Safe edges={['top', 'bottom']}>
-      <Header>
-        {/* `today.greeting` is the smoke test's anchor: it only renders once the profile
-            observable has emitted, so asserting on it proves the data layer resolved, not just
-            that the tab bar mounted (see .maestro/smoke.yaml). */}
-        {profile ? (
-          <Text testID="today.greeting" variant="h2">
-            {t('today.greeting', { name: profile.name })}
-          </Text>
-        ) : null}
-      </Header>
+      <TodayHeader name={profile?.name ?? null} date={today} />
     </Safe>
   );
 }

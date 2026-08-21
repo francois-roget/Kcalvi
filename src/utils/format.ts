@@ -1,3 +1,6 @@
+import { format as dateFnsFormat } from 'date-fns';
+import { fr } from 'date-fns/locale';
+
 import type { Food } from '@/domain/types';
 
 const integerFormatter = new Intl.NumberFormat('fr-BE', { maximumFractionDigits: 0 });
@@ -94,4 +97,16 @@ export function toNumberOrUndefined(text: string): number | undefined {
   const trimmed = text.trim();
   if (trimmed === '') return undefined;
   return parseLocaleNumber(trimmed);
+}
+
+/**
+ * Long French date for a screen header, e.g. « jeudi 21 août » (KCAL-182). Rendered through
+ * the `overline` typography variant, which applies the uppercasing -- the string itself stays
+ * lowercase so it can be reused anywhere the design doesn't uppercase.
+ *
+ * Uses date-fns' `fr` locale rather than Intl.DateTimeFormat for consistency with the rest of
+ * the date handling (`startOfDay`, `parseISO`, `getWeekBoundaries`).
+ */
+export function formatLongDate(date: Date): string {
+  return dateFnsFormat(date, 'EEEE d MMMM', { locale: fr });
 }
