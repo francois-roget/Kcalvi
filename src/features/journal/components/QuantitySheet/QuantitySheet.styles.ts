@@ -14,6 +14,12 @@ export const HeaderRow = styled.View`
   gap: ${({ theme }) => theme.spacing[4]}px;
 `;
 
+export const PortionRow = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 7px;
+`;
+
 export const MacroRow = styled.View`
   flex-direction: row;
   align-items: center;

@@ -3,11 +3,12 @@ import { View } from 'react-native';
 
 import BottomSheet from '@/ui/BottomSheet';
 import NumberField from '@/ui/NumberField';
+import QuickPortionButton from '@/ui/QuickPortionButton';
 import Text from '@/ui/Text';
 import { foodKcalLabel, formatGrams, formatKcal, unitLabel } from '@/utils/format';
 
 import { useQuantitySheet, type QuantitySheetTarget } from './QuantitySheet.helpers';
-import { Container, HeaderRow, MacroRow, styles } from './QuantitySheet.styles';
+import { Container, HeaderRow, MacroRow, PortionRow, styles } from './QuantitySheet.styles';
 
 export type QuantitySheetProps = {
   visible: boolean;
@@ -25,16 +26,24 @@ export type QuantitySheetProps = {
  */
 export function QuantitySheet({ visible, target, onClose }: QuantitySheetProps) {
   const { t } = useTranslation();
-  const { quantityText, setQuantityText, nutrition } = useQuantitySheet(target);
+  const {
+    food,
+    portions,
+    selectedPortionId,
+    selectPortion,
+    quantityText,
+    editQuantity,
+    nutrition,
+  } = useQuantitySheet(target);
 
   return (
     <BottomSheet visible={visible} onClose={onClose} minHeightRatio={0.55}>
       <Container testID="quantitySheet">
         <HeaderRow>
           <View style={styles.nameColumn}>
-            <Text variant="h2">{target.food.name}</Text>
+            <Text variant="h2">{food.name}</Text>
             <Text variant="caption" color="text.tertiary" style={styles.referenceLabel}>
-              {foodKcalLabel(t, target.food)}
+              {foodKcalLabel(t, food)}
             </Text>
           </View>
 
@@ -52,10 +61,26 @@ export function QuantitySheet({ visible, target, onClose }: QuantitySheetProps) 
         <NumberField
           testID="quantitySheet.quantityField"
           label={t('quantitySheet.quantityLabel')}
-          unit={unitLabel(t, target.food.referenceUnit)}
+          unit={unitLabel(t, food.referenceUnit)}
           value={quantityText}
-          onChangeText={setQuantityText}
+          onChangeText={editQuantity}
         />
+
+        {/* No portions saved on this food: the quantity field alone carries the entry, starting
+            at the food's reference quantity. */}
+        {portions.length === 0 ? null : (
+          <PortionRow testID="quantitySheet.portions">
+            {portions.map((portion) => (
+              <QuickPortionButton
+                key={portion.id}
+                testID={`quantitySheet.portion.${portion.id}`}
+                label={portion.label}
+                selected={portion.id === selectedPortionId}
+                onPress={() => selectPortion(portion)}
+              />
+            ))}
+          </PortionRow>
+        )}
 
         {/* P / G / L at one decimal. `numberOfLines={1}` on each: the design calls for a
             single nowrap line, and a long macro value must not push the row onto two. */}
