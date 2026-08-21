@@ -4,7 +4,7 @@ import { useTheme } from 'styled-components/native';
 
 import type { Theme } from '@/ui/theme';
 
-import { getToneStyle, type CardTone } from './Card.styles';
+import { getLayoutStyle, getToneStyle, type CardTone } from './Card.styles';
 
 export type CardProps = ViewProps & {
   tone?: CardTone;
@@ -27,11 +27,7 @@ export function Card({
   return (
     <View
       style={[
-        {
-          borderRadius: theme.radius[radius],
-          paddingVertical,
-          paddingHorizontal,
-        },
+        getLayoutStyle(theme, radius, paddingVertical, paddingHorizontal),
         getToneStyle(theme, tone),
         style,
       ]}
