@@ -6,6 +6,8 @@ import ProgressBar from '@/ui/ProgressBar';
 import Text from '@/ui/Text';
 import type { Theme } from '@/ui/theme';
 
+import { styles } from './MacroCard.styles';
+
 export type MacroCardProps = {
   label: string;
   value: number;
@@ -18,16 +20,16 @@ export function MacroCard({ label, value, goal, color }: MacroCardProps) {
   const macroColor = theme.colors.macro[color];
 
   return (
-    <Card tone="light" radius="xl" paddingVertical={12} paddingHorizontal={13} style={{ flex: 1 }}>
+    <Card tone="light" radius="xl" paddingVertical={12} paddingHorizontal={13} style={styles.card}>
       <Text variant="micro" color="text.tertiary">
         {label}
       </Text>
 
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 4, marginBottom: 8 }}>
-        <Text variant="body" style={{ fontFamily: 'Manrope_800ExtraBold', fontSize: 16 }}>
+      <View style={styles.valueRow}>
+        <Text variant="body" style={styles.value}>
           {value}
         </Text>
-        <Text variant="caption" style={{ color: '#B3BEC6', marginLeft: 2 }}>
+        <Text variant="caption" style={styles.goal}>
           {`/${goal} g`}
         </Text>
       </View>
