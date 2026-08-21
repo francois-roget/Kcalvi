@@ -78,6 +78,19 @@
     "SNACK": "Collation",
     "DINNER": "Dîner"
   },
+  "addEntry": {
+    "header": {
+      "cancel": "Annuler",
+      "create": "Créer",
+      "createHint": "Créer un aliment qui n'est pas encore dans ta bibliothèque",
+      "title": {
+        "BREAKFAST": "Ajouter au petit-déjeuner",
+        "LUNCH": "Ajouter au déjeuner",
+        "SNACK": "Ajouter à la collation",
+        "DINNER": "Ajouter au dîner"
+      }
+    }
+  },
   "profile": {
     "resetButton": "Réinitialiser mon profil",
     "resetConfirmTitle": "Réinitialiser ton profil ?",
