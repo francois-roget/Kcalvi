@@ -1,4 +1,9 @@
-export type MealType = 'BREAKFAST' | 'LUNCH' | 'SNACK' | 'DINNER';
+// Single source of truth for the meal type union: derived from the array (rather than
+// declared separately) so a value can be checked for membership via MEAL_TYPES.find/includes
+// without a second list to keep in sync -- used by mapping.ts (KCAL-168) to narrow the
+// WatermelonDB string column back to this union without an unchecked cast.
+export const MEAL_TYPES = ['BREAKFAST', 'LUNCH', 'SNACK', 'DINNER'] as const;
+export type MealType = (typeof MEAL_TYPES)[number];
 
 export type Sex = 'male' | 'female';
 
