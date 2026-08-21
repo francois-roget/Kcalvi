@@ -1,6 +1,10 @@
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useState } from 'react';
 
+import {
+  QuantitySheet,
+  type QuantitySheetTarget,
+} from '@/features/journal/components/QuantitySheet';
 import { SEARCH_DEBOUNCE_MS, useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useRecipeCalories } from '@/hooks/useRecipeCalories';
 import type { JournalAddEntryScreenProps, RootTabParamList } from '@/navigation/types';
@@ -37,6 +41,9 @@ export function AddEntryScreen({ route, navigation }: JournalAddEntryScreenProps
   const recipeCalories = useRecipeCalories(filteredRecipes);
   const results = useEntryResults(filteredFoods, filteredRecipes, recipeCalories);
 
+  // `null` = sheet closed. Recipe results don't open it yet -- the recipe mode is KCAL-180.
+  const [sheetTarget, setSheetTarget] = useState<QuantitySheetTarget | null>(null);
+
   const trimmedQuery = debouncedQuery.trim();
   const openFoodForm = (initialName?: string) =>
     navigateToFoodForm(
@@ -61,13 +68,21 @@ export function AddEntryScreen({ route, navigation }: JournalAddEntryScreenProps
           onSelectFilter={setSelectedFilter}
         />
 
-        {/* Opening the QuantitySheet on a result is KCAL-177 onwards. */}
         {results.length === 0 ? (
           <EntryEmptyState query={trimmedQuery} onCreatePress={() => openFoodForm(trimmedQuery)} />
         ) : (
-          <EntryResultList results={results} onSelect={() => {}} />
+          <EntryResultList
+            results={results}
+            onSelect={(result) => {
+              if (result.kind === 'food') setSheetTarget({ kind: 'food', food: result.food });
+            }}
+          />
         )}
       </Content>
+
+      {sheetTarget ? (
+        <QuantitySheet visible target={sheetTarget} onClose={() => setSheetTarget(null)} />
+      ) : null}
     </Safe>
   );
 }
