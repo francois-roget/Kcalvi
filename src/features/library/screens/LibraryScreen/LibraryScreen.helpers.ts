@@ -14,10 +14,6 @@ import type { LibraryScreenProps } from '@/navigation/types';
 // strings.
 export type TFunction = (key: string, options?: Record<string, unknown>) => string;
 
-// Light debounce (KCAL-103): avoids re-running the observed WatermelonDB
-// query on every keystroke while still feeling instant.
-export const SEARCH_DEBOUNCE_MS = 250;
-
 export type FilterKey = 'all' | 'favorites' | 'foods' | 'recipes';
 
 export const FILTERS: FilterKey[] = ['all', 'favorites', 'foods', 'recipes'];
@@ -28,18 +24,6 @@ const EMPTY_USAGES: RecipeIngredient[] = [];
 
 export type FoodInUseError = { code: 'FOOD_IN_USE'; message: string; recipeIds: string[] };
 export type Deletability = Result<void, FoodInUseError> | null;
-
-/** Debounces a fast-changing value (e.g. search input) by `delayMs`. */
-export function useDebouncedValue<T>(value: T, delayMs: number): T {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(timeout);
-  }, [value, delayMs]);
-
-  return debounced;
-}
 
 /**
  * Observes the food/recipe search results for `debouncedQuery` and derives every list-shaped

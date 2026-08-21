@@ -13,12 +13,10 @@ import {
 } from '@/domain/calculations';
 import type { DomainError, Food, FoodPortion, RecipeIngredient } from '@/domain/types';
 import { assertNonNegative } from '@/domain/validation';
+import { SEARCH_DEBOUNCE_MS, useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useObservable } from '@/hooks/useObservable';
 import type { RecipeFormScreenProps } from '@/navigation/types';
 import { formatInteger, parseLocaleNumber, unitLabel } from '@/utils/format';
-
-// Light debounce for the ingredient picker's food search (mirrors LibraryScreen's KCAL-103 pattern).
-const SEARCH_DEBOUNCE_MS = 250;
 
 const EMPTY_FOODS: Food[] = [];
 
@@ -162,18 +160,6 @@ export function buildQuickPortionPills(
       mode: 'reference' as const,
     };
   });
-}
-
-/** Debounces a fast-changing value (e.g. the ingredient picker's search input). */
-function useDebouncedValue<T>(value: T, delayMs: number): T {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(timeout);
-  }, [value, delayMs]);
-
-  return debounced;
 }
 
 function formatSubmitError(

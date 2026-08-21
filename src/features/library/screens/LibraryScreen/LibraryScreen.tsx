@@ -2,14 +2,13 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView } from 'react-native';
 
+import { SEARCH_DEBOUNCE_MS, useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { LibraryScreenProps } from '@/navigation/types';
 
 import { LibraryDialogs } from './LibraryDialogs';
 import { LibraryEmptyState } from './LibraryEmptyState';
 import { LibraryHeader } from './LibraryHeader';
 import {
-  SEARCH_DEBOUNCE_MS,
-  useDebouncedValue,
   useFoodDeleteFlow,
   useLibraryActions,
   useLibraryLists,

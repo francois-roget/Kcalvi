@@ -1,6 +1,73 @@
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { useMemo } from 'react';
 
+import { foodRepository, recipeRepository } from '@/data/repositories';
+import type { Food, Recipe } from '@/domain/types';
+import { useObservable } from '@/hooks/useObservable';
 import type { RootTabParamList } from '@/navigation/types';
+
+/**
+ * The 2h mockup also shows a « Récents » chip; it is deliberately absent this sprint, since
+ * recents (F07) are Sprint 4. « Aliments » is the default: adding a plain food is by far the
+ * most common path, and it keeps the first render from mixing two result shapes.
+ */
+export type EntryFilterKey = 'favorites' | 'foods' | 'recipes';
+
+export const ENTRY_FILTERS: EntryFilterKey[] = ['favorites', 'foods', 'recipes'];
+
+export const DEFAULT_ENTRY_FILTER: EntryFilterKey = 'foods';
+
+const EMPTY_FOODS: Food[] = [];
+const EMPTY_RECIPES: Recipe[] = [];
+
+/**
+ * Observes the food and recipe searches for `debouncedQuery`, then applies the active chip
+ * client-side -- same split as LibraryScreen (KCAL-104): the repositories expose no favorites
+ * parameter, so favorites are filtered on the observed result.
+ */
+export function useAddEntryResults(debouncedQuery: string, filter: EntryFilterKey) {
+  // Stable Observable reference per query (KCAL-103): `search()` builds a new observed query
+  // on every call, so without this memo the screen resubscribes on each keystroke-driven
+  // re-render, not just when the debounced query actually changes.
+  const foodSearchObservable = useMemo(
+    () => foodRepository.search(debouncedQuery),
+    [debouncedQuery],
+  );
+  const foods = useObservable(foodSearchObservable, EMPTY_FOODS);
+
+  const recipeSearchObservable = useMemo(
+    () => recipeRepository.search(debouncedQuery),
+    [debouncedQuery],
+  );
+  const recipes = useObservable(recipeSearchObservable, EMPTY_RECIPES);
+
+  const filteredFoods = useMemo(() => {
+    switch (filter) {
+      case 'favorites':
+        return foods.filter((food) => food.isFavorite);
+      case 'recipes':
+        return EMPTY_FOODS;
+      case 'foods':
+      default:
+        return foods;
+    }
+  }, [foods, filter]);
+
+  // « ★ Favoris » spans both kinds, like LibraryScreen's chip (KCAL-143).
+  const filteredRecipes = useMemo(() => {
+    switch (filter) {
+      case 'favorites':
+        return recipes.filter((recipe) => recipe.isFavorite);
+      case 'foods':
+        return EMPTY_RECIPES;
+      case 'recipes':
+      default:
+        return recipes;
+    }
+  }, [recipes, filter]);
+
+  return { filteredFoods, filteredRecipes };
+}
 
 /**
  * FoodFormScreen lives in the Library stack, while AddEntry is registered in the Today and

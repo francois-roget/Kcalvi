@@ -79,6 +79,12 @@
     "DINNER": "Dîner"
   },
   "addEntry": {
+    "searchPlaceholder": "Rechercher un aliment ou une recette",
+    "filters": {
+      "favorites": "★ Favoris",
+      "foods": "Aliments",
+      "recipes": "Recettes"
+    },
     "header": {
       "cancel": "Annuler",
       "create": "Créer",
