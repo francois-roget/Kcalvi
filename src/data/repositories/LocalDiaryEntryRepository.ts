@@ -1,6 +1,7 @@
 import type { Database } from '@nozbe/watermelondb';
 import { Q } from '@nozbe/watermelondb';
 import { map, type Observable } from '@nozbe/watermelondb/utils/rx';
+import { endOfDay, startOfDay } from 'date-fns';
 
 import { assertNonNegative } from '@/domain/validation';
 import type { DiaryEntry, DomainError, Result } from '@/domain/types';
@@ -35,12 +36,15 @@ export class LocalDiaryEntryRepository implements DiaryEntryRepository {
   }
 
   observeByDate(date: Date): Observable<DiaryEntry[]> {
-    // Exact-timestamp match: normalizing to a start-of-day write and querying a
-    // [start, end) range is KCAL-169's job, not this ticket's. Until then, callers
-    // must pass the exact Date a diary_entries row was written with.
+    // KCAL-169: a range query rather than an equality on startOfDay, even though every
+    // write below normalizes. The two are equivalent for rows this repository wrote, but
+    // the range also catches a row written at any other time of day -- a future non-
+    // normalized code path (or a manual DB edit) then shows up in the journal instead of
+    // vanishing from it silently. Q.between is inclusive on both bounds, and endOfDay
+    // resolves to 23:59:59.999 local, so the two days never overlap.
     return this.database
       .get<DiaryEntryModel>('diary_entries')
-      .query(Q.where('date', date.getTime()))
+      .query(Q.where('date', Q.between(startOfDay(date).getTime(), endOfDay(date).getTime())))
       .observe()
       .pipe(map((records) => records.map(toDomainDiaryEntry)));
   }
@@ -54,7 +58,10 @@ export class LocalDiaryEntryRepository implements DiaryEntryRepository {
     // domain/calculations itself.
     const created = await this.database.write(() =>
       this.database.get<DiaryEntryModel>('diary_entries').create((row) => {
-        row.date = input.date;
+        // KCAL-169: a diary entry belongs to a day, not an instant -- normalize here, at
+        // the single write path, so no caller has to remember to. startOfDay is local to
+        // the device, matching how the user reads their journal.
+        row.date = startOfDay(input.date);
         row.mealType = input.mealType;
         if (input.source.kind === 'food') {
           row.foodId = input.source.foodId;
@@ -86,7 +93,8 @@ export class LocalDiaryEntryRepository implements DiaryEntryRepository {
 
     const updated = await this.database.write(() =>
       found.value.update((row) => {
-        if (input.date !== undefined) row.date = input.date;
+        // Normalized on update too (KCAL-169) -- F14 lets an entry move to another day.
+        if (input.date !== undefined) row.date = startOfDay(input.date);
         if (input.mealType !== undefined) row.mealType = input.mealType;
         if (input.source !== undefined) {
           if (input.source.kind === 'food') {
