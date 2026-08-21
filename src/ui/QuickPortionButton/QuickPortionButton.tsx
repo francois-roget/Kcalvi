@@ -11,7 +11,7 @@ export type QuickPortionButtonProps = Omit<PressableProps, 'style'> & {
   selected?: boolean;
 };
 
-export function QuickPortionButton({ label, selected = false, ...props }: QuickPortionButtonProps) {
+function QuickPortionButton({ label, selected = false, ...props }: QuickPortionButtonProps) {
   const theme = useTheme() as Theme;
 
   return (

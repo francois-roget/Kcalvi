@@ -13,7 +13,7 @@ export type ToggleProps = {
   testID?: string;
 };
 
-export function Toggle({ value, onValueChange, disabled, testID }: ToggleProps) {
+function Toggle({ value, onValueChange, disabled, testID }: ToggleProps) {
   const theme = useTheme() as Theme;
 
   const thumbStyle = useAnimatedStyle(() => ({

@@ -14,7 +14,7 @@ export type ProgressBarProps = {
   height?: number;
 };
 
-export function ProgressBar({ progress, color, trackColor, height = 5 }: ProgressBarProps) {
+function ProgressBar({ progress, color, trackColor, height = 5 }: ProgressBarProps) {
   const theme = useTheme() as Theme;
   const [trackWidth, setTrackWidth] = useState(0);
   const clamped = Math.min(Math.max(progress, 0), 1);

@@ -15,7 +15,7 @@ export type MacroCardProps = {
   color: keyof Theme['colors']['macro'];
 };
 
-export function MacroCard({ label, value, goal, color }: MacroCardProps) {
+function MacroCard({ label, value, goal, color }: MacroCardProps) {
   const theme = useTheme() as Theme;
   const macroColor = theme.colors.macro[color];
 

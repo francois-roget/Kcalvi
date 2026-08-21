@@ -20,7 +20,7 @@ export type TextFieldProps = Omit<TextInputProps, 'style'> & {
   hint?: string;
 };
 
-export function TextField({ label, unit, error, numeric = false, hint, ...props }: TextFieldProps) {
+function TextField({ label, unit, error, numeric = false, hint, ...props }: TextFieldProps) {
   const theme = useTheme() as Theme;
 
   return (

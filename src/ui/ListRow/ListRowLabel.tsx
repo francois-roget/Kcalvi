@@ -14,7 +14,7 @@ export type ListRowLabelProps = {
 };
 
 /** Left-hand side of a ListRow: the selection checkmark, label and optional sublabel. */
-export function ListRowLabel({ theme, label, sublabel, selected }: ListRowLabelProps) {
+function ListRowLabel({ theme, label, sublabel, selected }: ListRowLabelProps) {
   return (
     <View style={styles.labelGroup}>
       {selected && (

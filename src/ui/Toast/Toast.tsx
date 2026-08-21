@@ -12,7 +12,7 @@ export type ToastProps = {
   message: string;
 };
 
-export function Toast({ message }: ToastProps) {
+function Toast({ message }: ToastProps) {
   const theme = useTheme() as Theme;
 
   return (

@@ -15,7 +15,7 @@ export type SegmentedControlProps<T extends string> = {
   onChange: (value: T) => void;
 };
 
-export function SegmentedControl<T extends string>({
+function SegmentedControl<T extends string>({
   options,
   value,
   onChange,

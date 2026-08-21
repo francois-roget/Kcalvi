@@ -10,7 +10,7 @@ export type StepIndicatorProps = {
   currentStep: number;
 };
 
-export function StepIndicator({ totalSteps, currentStep }: StepIndicatorProps) {
+function StepIndicator({ totalSteps, currentStep }: StepIndicatorProps) {
   const theme = useTheme() as Theme;
 
   return (

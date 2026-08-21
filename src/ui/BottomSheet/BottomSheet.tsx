@@ -17,7 +17,7 @@ export type BottomSheetProps = PropsWithChildren<{
   minHeightRatio?: number;
 }>;
 
-export function BottomSheet({ visible, onClose, children, minHeightRatio }: BottomSheetProps) {
+function BottomSheet({ visible, onClose, children, minHeightRatio }: BottomSheetProps) {
   const theme = useTheme() as Theme;
   const { t } = useTranslation();
   const { height: windowHeight } = useWindowDimensions();

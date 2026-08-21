@@ -14,7 +14,7 @@ export type StatTileProps = {
   tone?: StatTileTone;
 };
 
-export function StatTile({ label, value, tone = 'dark' }: StatTileProps) {
+function StatTile({ label, value, tone = 'dark' }: StatTileProps) {
   const theme = useTheme() as Theme;
   const config = getToneConfig(tone);
   const isDark = tone === 'dark';

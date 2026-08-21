@@ -18,13 +18,7 @@ export type ButtonProps = Omit<PressableProps, 'style'> & {
   size?: ButtonSize;
 };
 
-export function Button({
-  label,
-  variant = 'primary',
-  size = 'lg',
-  disabled,
-  ...props
-}: ButtonProps) {
+function Button({ label, variant = 'primary', size = 'lg', disabled, ...props }: ButtonProps) {
   const theme = useTheme() as Theme;
 
   return (

@@ -8,7 +8,7 @@ import type { Theme } from '@/ui/theme';
 import { handleTabPress } from './TabBar.helpers';
 import { getContainerStyle, getLabelStyle, styles } from './TabBar.styles';
 
-export function TabBar({ state, descriptors, navigation, insets }: BottomTabBarProps) {
+function TabBar({ state, descriptors, navigation, insets }: BottomTabBarProps) {
   const theme = useTheme() as Theme;
 
   return (

@@ -13,7 +13,7 @@ export type CardProps = ViewProps & {
   paddingHorizontal?: number;
 };
 
-export function Card({
+function Card({
   tone = 'light',
   radius = '2xl',
   paddingVertical = 14,

@@ -5,8 +5,8 @@ import { useTheme } from 'styled-components/native';
 import type { Theme } from '@/ui/theme';
 
 import { getRowStyle, styles } from './ListRow.styles';
-import { ListRowLabel } from './ListRowLabel';
-import { ListRowValue } from './ListRowValue';
+import ListRowLabel from './ListRowLabel';
+import ListRowValue from './ListRowValue';
 
 export type ListRowAccessory = 'chevron' | 'toggle' | 'star';
 
@@ -26,7 +26,7 @@ export type ListRowProps = {
   maxStars?: number;
 };
 
-export function ListRow({
+function ListRow({
   label,
   value,
   sublabel,

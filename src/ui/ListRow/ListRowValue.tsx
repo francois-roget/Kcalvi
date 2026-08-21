@@ -21,7 +21,7 @@ export type ListRowValueProps = {
 };
 
 /** Right-hand side of a ListRow: either a star rating or a value label, plus the accessory icon. */
-export function ListRowValue({
+function ListRowValue({
   theme,
   value,
   stars,

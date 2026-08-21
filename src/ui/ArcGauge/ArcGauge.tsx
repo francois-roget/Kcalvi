@@ -22,7 +22,7 @@ export type ArcGaugeProps = {
   width?: number;
 };
 
-export function ArcGauge({ value, goal, subtitle, width = VIEWBOX_WIDTH }: ArcGaugeProps) {
+function ArcGauge({ value, goal, subtitle, width = VIEWBOX_WIDTH }: ArcGaugeProps) {
   const theme = useTheme() as Theme;
   const progress = goal > 0 ? Math.min(Math.max(value / goal, 0), 1) : 0;
   const overGoal = value > goal;

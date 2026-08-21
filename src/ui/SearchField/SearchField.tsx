@@ -17,7 +17,7 @@ export type SearchFieldProps = Omit<TextInputProps, 'style'> & {
   onClear?: () => void;
 };
 
-export function SearchField({ onClear, value, ...props }: SearchFieldProps) {
+function SearchField({ onClear, value, ...props }: SearchFieldProps) {
   const theme = useTheme() as Theme;
   const { t } = useTranslation();
 

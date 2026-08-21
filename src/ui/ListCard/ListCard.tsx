@@ -14,7 +14,7 @@ import type { Theme } from '@/ui/theme';
 
 import { getWrapperStyle } from './ListCard.styles';
 
-export function ListCard({ children }: PropsWithChildren) {
+function ListCard({ children }: PropsWithChildren) {
   const theme = useTheme() as Theme;
   const items = Children.toArray(children).filter(isValidElement) as ReactElement<ListRowProps>[];
 

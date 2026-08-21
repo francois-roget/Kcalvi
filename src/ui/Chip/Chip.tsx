@@ -11,7 +11,7 @@ export type ChipProps = Omit<PressableProps, 'style'> & {
   selected?: boolean;
 };
 
-export function Chip({ label, selected = false, ...props }: ChipProps) {
+function Chip({ label, selected = false, ...props }: ChipProps) {
   const theme = useTheme() as Theme;
 
   return (
