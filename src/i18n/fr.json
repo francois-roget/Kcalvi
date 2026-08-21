@@ -70,7 +70,13 @@
     }
   },
   "today": {
-    "greeting": "Bonjour {{name}}"
+    "greeting": "Bonjour {{name}}",
+    "hero": {
+      "goal": "sur {{goal}} kcal",
+      "consumed": "Consommé",
+      "burned": "Brûlé",
+      "remaining": "Restant"
+    }
   },
   "meals": {
     "BREAKFAST": "Petit-déjeuner",

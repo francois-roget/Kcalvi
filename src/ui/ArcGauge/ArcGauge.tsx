@@ -57,7 +57,15 @@ function ArcGauge({ value, goal, subtitle, width = VIEWBOX_WIDTH }: ArcGaugeProp
       </Svg>
 
       <View style={styles.valueOverlay}>
-        <Text variant="display" color="onDark.primary">
+        {/* The total follows the arc's over-goal state (KCAL-183): the gauge already turns
+            terracotta past the goal, and the number it labels has to say the same thing.
+            terracotta.600 isn't in Text's `text.*`/`onDark.*` palettes, so it comes through
+            `style` rather than the `color` prop. */}
+        <Text
+          variant="display"
+          color="onDark.primary"
+          style={overGoal ? { color: theme.colors.terracotta[600] } : undefined}
+        >
           {Math.round(value)}
         </Text>
         {subtitle ? (
