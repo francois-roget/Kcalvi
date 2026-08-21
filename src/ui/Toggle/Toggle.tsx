@@ -4,10 +4,7 @@ import { useTheme } from 'styled-components/native';
 
 import type { Theme } from '@/ui/theme';
 
-const TRACK_WIDTH = 44;
-const TRACK_HEIGHT = 26;
-const THUMB_SIZE = 20;
-const OFFSET = 3;
+import { getTrackStyle, OFFSET, styles, THUMB_SIZE, TRACK_WIDTH } from './Toggle.styles';
 
 export type ToggleProps = {
   value: boolean;
@@ -36,26 +33,9 @@ export function Toggle({ value, onValueChange, disabled, testID }: ToggleProps) 
       accessibilityState={{ checked: value, disabled: Boolean(disabled) }}
       disabled={disabled}
       onPress={() => onValueChange(!value)}
-      style={{
-        width: TRACK_WIDTH,
-        height: TRACK_HEIGHT,
-        borderRadius: theme.radius.pill,
-        backgroundColor: value ? theme.colors.azure[600] : '#E3DACB',
-        justifyContent: 'center',
-        opacity: disabled ? 0.45 : 1,
-      }}
+      style={[styles.track, getTrackStyle(theme, value, disabled)]}
     >
-      <Animated.View
-        style={[
-          {
-            width: THUMB_SIZE,
-            height: THUMB_SIZE,
-            borderRadius: THUMB_SIZE / 2,
-            backgroundColor: '#FFFFFF',
-          },
-          thumbStyle,
-        ]}
-      />
+      <Animated.View style={[styles.thumb, thumbStyle]} />
     </Pressable>
   );
 }
