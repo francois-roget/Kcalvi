@@ -77,6 +77,9 @@ jest.mock('@/data/repositories/getRecipesCalories', () => ({
 jest.mock('@react-navigation/native', () => {
   const { useEffect } = require('react');
   return {
+    // Generic passthrough mock, not a component: `callback` is the caller's effect body,
+    // its own deps aren't ours to list.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useFocusEffect: (callback: () => void | (() => void)) => useEffect(callback, []),
   };
 });

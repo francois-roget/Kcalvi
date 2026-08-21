@@ -3,9 +3,8 @@
 // which needs the real filesystem -- this file runs under the "DB" jest project
 // (testEnvironment: 'node', see jest.config.js and LocalRecipeRepository.dbtest.ts's
 // identical header comment for the full rationale).
-import { Database } from '@nozbe/watermelondb';
+import { Database, appSchema, tableSchema } from '@nozbe/watermelondb';
 import SQLiteAdapter from '@nozbe/watermelondb/adapters/sqlite';
-import { appSchema, tableSchema } from '@nozbe/watermelondb';
 import type { Observable } from '@nozbe/watermelondb/utils/rx';
 import * as fs from 'fs';
 import * as os from 'os';

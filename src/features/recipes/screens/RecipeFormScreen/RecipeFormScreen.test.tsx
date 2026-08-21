@@ -14,7 +14,6 @@ import { RecipeFormScreen } from './RecipeFormScreen';
 // issue documented in LibraryScreen.test.tsx). RecipeFormScreen renders an Ionicons
 // trash glyph per ingredient row, so the same lightweight stub is needed here.
 jest.mock('@expo/vector-icons', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { Text: RNText } = require('react-native');
   return {
     Ionicons: ({ name }: { name: string }) => <RNText>{name}</RNText>,
@@ -27,7 +26,6 @@ jest.mock('@expo/vector-icons', () => {
 // runtime, which isn't set up under this project's Jest config (see LibraryScreen.test.tsx),
 // so a small self-contained stub is used instead.
 jest.mock('react-native-reanimated', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { View } = require('react-native');
   return {
     __esModule: true,
@@ -56,7 +54,6 @@ jest.mock('@/data/repositories/getRecipeWithIngredients', () => ({
 // plain Pressable test double that still reports accessibilityState.checked so the KCAL-161
 // tests can assert the preloaded/toggled value.
 jest.mock('@/ui/Toggle', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { Pressable, Text: RNText } = require('react-native');
   return {
     __esModule: true,

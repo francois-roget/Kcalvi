@@ -4,10 +4,9 @@
 // on-disk SQLite file across two adapters below). The root tsconfig.json intentionally scopes
 // `compilerOptions.types` to `["jest"]` so Node globals don't leak into React Native app code;
 // this explicit reference pulls in @types/node for this file only, without changing that.
-import { Database } from '@nozbe/watermelondb';
+import { Database, appSchema, tableSchema } from '@nozbe/watermelondb';
 import SQLiteAdapter from '@nozbe/watermelondb/adapters/sqlite';
 import type { Observable } from '@nozbe/watermelondb/utils/rx';
-import { appSchema, tableSchema } from '@nozbe/watermelondb';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';

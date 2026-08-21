@@ -21,7 +21,6 @@ jest.mock('@/data/repositories', () => ({
 // issue documented in RecipeFormScreen.test.tsx). KCAL-163e's per-portion delete icon uses
 // Ionicons, so the same lightweight stub is needed here.
 jest.mock('@expo/vector-icons', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { Text: RNText } = require('react-native');
   return {
     Ionicons: ({ name }: { name: string }) => <RNText>{name}</RNText>,
@@ -34,7 +33,6 @@ jest.mock('@expo/vector-icons', () => {
 // KCAL-122's scope (validation, submit success/error, edit preload), so it's swapped for
 // a plain Pressable test double here rather than pulled into this screen's test run.
 jest.mock('@/ui/Toggle', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { Pressable, Text: RNText } = require('react-native');
   return {
     __esModule: true,

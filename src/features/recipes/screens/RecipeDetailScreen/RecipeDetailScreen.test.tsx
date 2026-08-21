@@ -12,7 +12,6 @@ import { RecipeDetailScreen } from './RecipeDetailScreen';
 // expo-asset, which isn't hoisted to the root node_modules in this environment. This
 // screen renders an Ionicons chevron-back glyph in its header.
 jest.mock('@expo/vector-icons', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { Text: RNText } = require('react-native');
   return {
     Ionicons: ({ name }: { name: string }) => <RNText>{name}</RNText>,
@@ -23,7 +22,6 @@ jest.mock('@expo/vector-icons', () => {
 // -- same issue as RecipeFormScreen.test.tsx: the package's own jest mock still boots the
 // real worklets runtime, which isn't set up under this project's Jest config.
 jest.mock('react-native-reanimated', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { View } = require('react-native');
   return {
     __esModule: true,
