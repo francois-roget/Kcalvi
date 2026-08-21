@@ -72,6 +72,12 @@
   "today": {
     "greeting": "Bonjour {{name}}"
   },
+  "meals": {
+    "BREAKFAST": "Petit-déjeuner",
+    "LUNCH": "Déjeuner",
+    "SNACK": "Collation",
+    "DINNER": "Dîner"
+  },
   "profile": {
     "resetButton": "Réinitialiser mon profil",
     "resetConfirmTitle": "Réinitialiser ton profil ?",

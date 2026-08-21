@@ -2,6 +2,10 @@
 // declared separately) so a value can be checked for membership via MEAL_TYPES.find/includes
 // without a second list to keep in sync -- used by mapping.ts (KCAL-168) to narrow the
 // WatermelonDB string column back to this union without an unchecked cast.
+//
+// Declaration order is F10's display order (petit-déjeuner, déjeuner, collation, dîner):
+// screens iterate this array directly to lay out their meal sections, so reordering it
+// reorders the UI. Each value is also the i18n key under `meals.*` in fr.json (KCAL-170).
 export const MEAL_TYPES = ['BREAKFAST', 'LUNCH', 'SNACK', 'DINNER'] as const;
 export type MealType = (typeof MEAL_TYPES)[number];
 
