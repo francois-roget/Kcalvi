@@ -1,17 +1,10 @@
 import { Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import styled from 'styled-components/native';
 
 import type { ProgressScreenProps } from '@/navigation/types';
 import Text from '@/ui/Text';
 
-const Container = styled.View`
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  background-color: ${({ theme }) => theme.colors.sand[100]};
-  gap: ${({ theme }) => theme.spacing[5]}px;
-`;
+import { Container } from './ProgressScreen.styles';
 
 export function ProgressScreen({ navigation }: ProgressScreenProps) {
   const { t } = useTranslation();
