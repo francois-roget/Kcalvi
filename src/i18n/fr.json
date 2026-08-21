@@ -85,6 +85,9 @@
       "foods": "Aliments",
       "recipes": "Recettes"
     },
+    "result": {
+      "addLabel": "Ajouter {{name}}"
+    },
     "header": {
       "cancel": "Annuler",
       "create": "Créer",

@@ -1,3 +1,5 @@
+import type { Food } from '@/domain/types';
+
 const integerFormatter = new Intl.NumberFormat('fr-BE', { maximumFractionDigits: 0 });
 const decimalFormatter = new Intl.NumberFormat('fr-BE', {
   minimumFractionDigits: 1,
@@ -50,4 +52,28 @@ export function unitLabel(
   unit: string,
 ): string {
   return t(`recipeForm.units.${unit}`, { defaultValue: unit });
+}
+
+/**
+ * French kcal label for a food card (KCAL-158): "64 kcal pour 100 g" / "24 kcal pour 100 ml" /
+ * "78 kcal par unité" -- never "78 kcal pour 1 unité": a `referenceUnit === 'unit'` food always
+ * has `referenceQuantity = 1`, so the "pour N unité" phrasing would read oddly.
+ *
+ * KCAL-175: moved here from LibraryScreen/FoodListItem so AddEntryScreen's result rows show the
+ * same reference line. Its i18n keys stay under `library.food.*` (shared, like the
+ * `recipeForm.units.*` keys `unitLabel` reads above) rather than being renamed across screens.
+ */
+export function foodKcalLabel(
+  t: (key: string, options?: Record<string, unknown>) => string,
+  food: Pick<Food, 'calories' | 'referenceQuantity' | 'referenceUnit'>,
+): string {
+  const kcal = formatInteger(food.calories);
+  if (food.referenceUnit === 'unit') {
+    return t('library.food.kcalPerUnit', { kcal });
+  }
+  return t('library.food.kcalPerReference', {
+    kcal,
+    quantity: formatInteger(food.referenceQuantity),
+    unit: unitLabel(t, food.referenceUnit),
+  });
 }
