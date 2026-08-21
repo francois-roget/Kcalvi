@@ -75,6 +75,29 @@ export function calculatePortionNutrition(
   };
 }
 
+/**
+ * Scales an already-per-unit set of nutrition values by a count -- the exact inverse of
+ * `calculatePortionNutrition`, and the function a recipe diary entry needs: per-portion
+ * values (F09) x number of portions consumed.
+ *
+ * Deliberately its own function rather than reusing `calculatePortionNutrition` with a
+ * computed `1 / factor` divisor. That trick reads as a division while performing a
+ * multiplication, which is precisely the implicit-conversion class of bug documented at
+ * length on `convertPortionToReferenceQuantity` in Sprint 2 -- and it would silently
+ * produce Infinity at factor 0 instead of the zeroes callers expect.
+ *
+ * Unit-agnostic, like every other function here: `values` must already be expressed per
+ * one of whatever `factor` counts.
+ */
+export function multiplyNutrition(values: NutritionValues, factor: number): NutritionValues {
+  return {
+    calories: values.calories * factor,
+    protein: values.protein * factor,
+    carbs: values.carbs * factor,
+    fat: values.fat * factor,
+  };
+}
+
 /** RM04 */
 export function calculateConsumedCalories(diaryEntries: DiaryEntry[]): number {
   return diaryEntries.reduce((total, entry) => total + entry.calories, 0);
