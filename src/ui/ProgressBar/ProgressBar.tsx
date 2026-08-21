@@ -5,6 +5,8 @@ import { useTheme } from 'styled-components/native';
 
 import type { Theme } from '@/ui/theme';
 
+import { getFillStyle, getTrackStyle } from './ProgressBar.styles';
+
 export type ProgressBarProps = {
   progress: number;
   color: string;
@@ -26,18 +28,8 @@ export function ProgressBar({ progress, color, trackColor, height = 5 }: Progres
   }
 
   return (
-    <View
-      onLayout={handleLayout}
-      style={{
-        height,
-        borderRadius: theme.radius.pill,
-        backgroundColor: trackColor ?? theme.colors.sand[400],
-        overflow: 'hidden',
-      }}
-    >
-      <Animated.View
-        style={[{ height, borderRadius: theme.radius.pill, backgroundColor: color }, fillStyle]}
-      />
+    <View onLayout={handleLayout} style={getTrackStyle(theme, height, trackColor)}>
+      <Animated.View style={[getFillStyle(theme, height, color), fillStyle]} />
     </View>
   );
 }
