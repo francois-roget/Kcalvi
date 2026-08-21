@@ -8,6 +8,7 @@ import {
 import { SEARCH_DEBOUNCE_MS, useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useRecipeCalories } from '@/hooks/useRecipeCalories';
 import type { JournalAddEntryScreenProps, RootTabParamList } from '@/navigation/types';
+import { useToast } from '@/ui/Toast';
 
 import { AddEntryHeader } from './AddEntryHeader';
 import {
@@ -31,7 +32,8 @@ import { EntryResultList } from './EntryResultList';
  * (KCAL-176) slot into Content below the filter bar.
  */
 export function AddEntryScreen({ route, navigation }: JournalAddEntryScreenProps) {
-  const { mealType } = route.params;
+  const { mealType, date } = route.params;
+  const { showToast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<EntryFilterKey>(DEFAULT_ENTRY_FILTER);
@@ -85,7 +87,21 @@ export function AddEntryScreen({ route, navigation }: JournalAddEntryScreenProps
       </Content>
 
       {sheetTarget ? (
-        <QuantitySheet visible target={sheetTarget} onClose={() => setSheetTarget(null)} />
+        <QuantitySheet
+          visible
+          target={sheetTarget}
+          mealType={mealType}
+          dayKey={date}
+          onClose={() => setSheetTarget(null)}
+          onSaved={(message) => {
+            // interactions.md: the entry lands, a toast confirms it, and the modal closes back
+            // to where the user came from. The observing screens refresh themselves
+            // (TECHNICAL_SPECS §5.3) -- nothing to invalidate here.
+            setSheetTarget(null);
+            showToast(message);
+            navigation.goBack();
+          }}
+        />
       ) : null}
     </Safe>
   );

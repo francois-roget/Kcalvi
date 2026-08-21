@@ -84,7 +84,15 @@
     "portionUnit": "portions",
     "protein": "P {{value}}",
     "carbs": "G {{value}}",
-    "fat": "L {{value}}"
+    "fat": "L {{value}}",
+    "favorite": "Ajouter aux favoris",
+    "addedToast": "{{name}} · {{kcal}} kcal ajoutées",
+    "errors": {
+      "invalidQuantity": "Indique une quantité.",
+      "negativeQuantity": "La quantité ne peut pas être négative.",
+      "recipeNotLoaded": "Les ingrédients de cette recette n'ont pas pu être chargés.",
+      "generic": "L'ajout a échoué. Réessaie."
+    }
   },
   "addEntry": {
     "searchPlaceholder": "Rechercher un aliment ou une recette",

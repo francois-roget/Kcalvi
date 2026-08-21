@@ -33,3 +33,9 @@ export const styles = StyleSheet.create({
   // typing, so the name column is what gives way on a long name.
   kcal: { flexShrink: 0 },
 });
+
+export const ToggleRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+`;

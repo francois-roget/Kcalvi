@@ -1,7 +1,9 @@
+import { parseISO } from 'date-fns';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { database } from '@/data/database';
-import { foodRepository } from '@/data/repositories';
+import { diaryEntryRepository, foodRepository, recipeRepository } from '@/data/repositories';
+import type { DiaryEntrySource } from '@/data/repositories/DiaryEntryRepository';
 import { getRecipeWithIngredients } from '@/data/repositories/getRecipeWithIngredients';
 import {
   calculatePortionNutrition,
@@ -10,8 +12,12 @@ import {
   convertPortionToReferenceQuantity,
   multiplyNutrition,
 } from '@/domain/calculations';
-import type { Food, FoodPortion, NutritionValues, Recipe } from '@/domain/types';
+import type { Food, FoodPortion, MealType, NutritionValues, Recipe } from '@/domain/types';
+import { assertNonNegative } from '@/domain/validation';
 import { numberToText, toNumberOrUndefined } from '@/utils/format';
+
+/** Local alias for the i18next translation function, kept minimal (same as the other screens). */
+export type TFunction = (key: string, options?: Record<string, unknown>) => string;
 
 /**
  * What the sheet is adding to the journal. A discriminated union, mirroring
@@ -113,6 +119,16 @@ function useRecipePortionNutrition(recipe: Recipe | null): NutritionValues | und
 }
 
 /**
+ * Turns the route's `yyyy-MM-dd` day key back into a Date (KCAL-172 keeps navigation params
+ * serializable). `parseISO` resolves a date-only string at local midnight, unlike
+ * `new Date('2026-08-21')`, which parses it as UTC and lands on the previous day for any
+ * device west of Greenwich. The repository normalizes to startOfDay again on write (KCAL-169).
+ */
+export function parseDayKey(dayKey: string): Date {
+  return parseISO(dayKey);
+}
+
+/**
  * Owns the sheet's quantity state and derives the nutrition shown for it.
  *
  * Quantity is held as text, not a number: the decimal-pad keyboard types a comma in fr-BE, so
@@ -126,7 +142,13 @@ function useRecipePortionNutrition(recipe: Recipe | null): NutritionValues | und
  * time, because `calculateProportionalNutrition` has no unit awareness at all (the invariant
  * documented on that function since Sprint 2).
  */
-export function useQuantitySheet(target: QuantitySheetTarget) {
+export function useQuantitySheet(
+  target: QuantitySheetTarget,
+  mealType: MealType,
+  dayKey: string,
+  t: TFunction,
+  onSaved: (message: string) => void,
+) {
   // Both branch hooks run unconditionally with a null argument on the arm that isn't active --
   // a hook can't be called behind an `if`.
   const food = useFoodWithPortions(target.kind === 'food' ? target.food : null);
@@ -192,6 +214,89 @@ export function useQuantitySheet(target: QuantitySheetTarget) {
     return ZERO_NUTRITION;
   }, [food, perPortion, quantity]);
 
+  const [isFavorite, setIsFavorite] = useState(
+    target.kind === 'food' ? target.food.isFavorite : target.recipe.isFavorite,
+  );
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | undefined>(undefined);
+
+  const name = target.kind === 'food' ? (food ?? target.food).name : target.recipe.name;
+
+  /**
+   * Writes the entry (RM16): the nutrition values and the display `label` are copied onto the
+   * DiaryEntry, so the journal keeps reading correctly even if the food or recipe is later
+   * renamed, edited, or deleted.
+   *
+   * Deliberately does NOT touch badge re-evaluation (TECHNICAL_SPECS §8.3): that lands in
+   * Sprint 7, and an empty "just in case" hook here would be a call site with no behavior for
+   * four sprints.
+   */
+  async function submit() {
+    if (submitting) return;
+
+    // RM14 at submit time -- the live readout tolerates a blank/mid-edit field, the write
+    // does not.
+    if (quantity === undefined) {
+      setError(t('quantitySheet.errors.invalidQuantity'));
+      return;
+    }
+    const quantityCheck = assertNonNegative(quantity, 'quantity');
+    if (!quantityCheck.ok) {
+      setError(t('quantitySheet.errors.negativeQuantity'));
+      return;
+    }
+
+    let source: DiaryEntrySource;
+    if (target.kind === 'food') {
+      source = { kind: 'food', foodId: target.food.id, portionId: selectedPortionId };
+    } else {
+      // Refuse rather than write zeroes: a recipe whose ingredients never resolved would
+      // silently record a 0 kcal entry.
+      if (perPortion === undefined) {
+        setError(t('quantitySheet.errors.recipeNotLoaded'));
+        return;
+      }
+      source = { kind: 'recipe', recipeId: target.recipe.id };
+    }
+
+    setSubmitting(true);
+    setError(undefined);
+
+    const result = await diaryEntryRepository.create({
+      date: parseDayKey(dayKey),
+      mealType,
+      source,
+      quantity,
+      // The one non-reference-unit case in the whole data layer (KCAL-180).
+      unit: target.kind === 'food' ? (food ?? target.food).referenceUnit : PORTION_UNIT,
+      calories: nutrition.calories,
+      protein: nutrition.protein,
+      carbs: nutrition.carbs,
+      fat: nutrition.fat,
+      label: name,
+    });
+
+    if (!result.ok) {
+      setSubmitting(false);
+      setError(t('quantitySheet.errors.generic'));
+      return;
+    }
+
+    // The favorite toggle is a side effect of adding, not part of the entry: applied only
+    // when it actually changed, and a failure here must not undo a successful entry.
+    const wasFavorite = target.kind === 'food' ? target.food.isFavorite : target.recipe.isFavorite;
+    if (isFavorite !== wasFavorite) {
+      if (target.kind === 'food') {
+        await foodRepository.update(target.food.id, { isFavorite });
+      } else {
+        await recipeRepository.update(target.recipe.id, { isFavorite });
+      }
+    }
+
+    setSubmitting(false);
+    onSaved(t('quantitySheet.addedToast', { name, kcal: Math.round(nutrition.calories) }));
+  }
+
   return {
     food,
     perPortion,
@@ -202,5 +307,11 @@ export function useQuantitySheet(target: QuantitySheetTarget) {
     editQuantity,
     quantity,
     nutrition,
+    name,
+    isFavorite,
+    setIsFavorite,
+    submitting,
+    error,
+    submit,
   };
 }

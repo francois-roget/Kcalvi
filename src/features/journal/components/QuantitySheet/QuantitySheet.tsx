@@ -1,19 +1,34 @@
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
+import type { MealType } from '@/domain/types';
 import BottomSheet from '@/ui/BottomSheet';
+import Button from '@/ui/Button';
+import Card from '@/ui/Card';
 import NumberField from '@/ui/NumberField';
 import QuickPortionButton from '@/ui/QuickPortionButton';
 import Text from '@/ui/Text';
+import Toggle from '@/ui/Toggle';
 import { foodKcalLabel, formatGrams, formatInteger, formatKcal, unitLabel } from '@/utils/format';
 
 import { useQuantitySheet, type QuantitySheetTarget } from './QuantitySheet.helpers';
-import { Container, HeaderRow, MacroRow, PortionRow, styles } from './QuantitySheet.styles';
+import {
+  Container,
+  HeaderRow,
+  MacroRow,
+  PortionRow,
+  ToggleRow,
+  styles,
+} from './QuantitySheet.styles';
 
 export type QuantitySheetProps = {
   visible: boolean;
   target: QuantitySheetTarget;
+  mealType: MealType;
+  /** `yyyy-MM-dd` day key from the AddEntry route (KCAL-172). */
+  dayKey: string;
   onClose: () => void;
+  onSaved: (message: string) => void;
 };
 
 /**
@@ -24,7 +39,14 @@ export type QuantitySheetProps = {
  * The sheet never computes nutrition itself -- it renders what domain/calculations returns,
  * per interactions.md.
  */
-export function QuantitySheet({ visible, target, onClose }: QuantitySheetProps) {
+export function QuantitySheet({
+  visible,
+  target,
+  mealType,
+  dayKey,
+  onClose,
+  onSaved,
+}: QuantitySheetProps) {
   const { t } = useTranslation();
   const {
     food,
@@ -35,10 +57,15 @@ export function QuantitySheet({ visible, target, onClose }: QuantitySheetProps) 
     quantityText,
     editQuantity,
     nutrition,
-  } = useQuantitySheet(target);
+    name,
+    isFavorite,
+    setIsFavorite,
+    submitting,
+    error,
+    submit,
+  } = useQuantitySheet(target, mealType, dayKey, t, onSaved);
 
   const isFood = target.kind === 'food';
-  const name = isFood ? (food?.name ?? target.food.name) : target.recipe.name;
 
   // A recipe's reference line is its per-portion kcal, which shows the servings line until the
   // ingredients resolve rather than a provisional "0 kcal"; a food's is its stored
@@ -87,6 +114,7 @@ export function QuantitySheet({ visible, target, onClose }: QuantitySheetProps) 
           }
           value={quantityText}
           onChangeText={editQuantity}
+          error={error}
         />
 
         {/* Quick portions are a food-only affordance: a recipe is already counted in portions,
@@ -119,6 +147,27 @@ export function QuantitySheet({ visible, target, onClose }: QuantitySheetProps) 
             {t('quantitySheet.fat', { value: formatGrams(nutrition.fat) })}
           </Text>
         </MacroRow>
+
+        <Card tone="light">
+          <ToggleRow>
+            <Text variant="body">{t('quantitySheet.favorite')}</Text>
+            <Toggle
+              testID="quantitySheet.favorite"
+              value={isFavorite}
+              onValueChange={setIsFavorite}
+            />
+          </ToggleRow>
+        </Card>
+
+        {/* Reuses the header's per-meal title keys: French contracts the preposition with the
+            article, so « Ajouter à la collation » can't be interpolated (KCAL-173). */}
+        <Button
+          testID="quantitySheet.submit"
+          label={t(`addEntry.header.title.${mealType}`)}
+          variant="primary"
+          disabled={submitting}
+          onPress={submit}
+        />
       </Container>
     </BottomSheet>
   );

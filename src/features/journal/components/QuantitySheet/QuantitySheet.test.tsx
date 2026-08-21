@@ -45,8 +45,17 @@ jest.mock('react-native-safe-area-context', () => {
 jest.mock('@/data/database', () => ({ database: {} }));
 
 const mockFindById = jest.fn();
+
+const mockCreateEntry = jest.fn();
+const mockUpdateFood = jest.fn();
+const mockUpdateRecipe = jest.fn();
 jest.mock('@/data/repositories', () => ({
-  foodRepository: { findById: (...args: unknown[]) => mockFindById(...args) },
+  foodRepository: {
+    findById: (...args: unknown[]) => mockFindById(...args),
+    update: (...args: unknown[]) => mockUpdateFood(...args),
+  },
+  recipeRepository: { update: (...args: unknown[]) => mockUpdateRecipe(...args) },
+  diaryEntryRepository: { create: (...args: unknown[]) => mockCreateEntry(...args) },
 }));
 
 const mockGetRecipeWithIngredients = jest.fn();
@@ -87,10 +96,19 @@ const SOUPE: Recipe = {
   updatedAt: new Date(),
 };
 
+const onSaved = jest.fn();
+
 function renderSheet(food: Food) {
   return render(
     <ThemeProvider theme={theme}>
-      <QuantitySheet visible target={{ kind: 'food', food }} onClose={jest.fn()} />
+      <QuantitySheet
+        visible
+        target={{ kind: 'food', food }}
+        mealType="LUNCH"
+        dayKey="2026-08-21"
+        onClose={jest.fn()}
+        onSaved={onSaved}
+      />
     </ThemeProvider>,
   );
 }
@@ -98,7 +116,14 @@ function renderSheet(food: Food) {
 function renderRecipeSheet(recipe: Recipe) {
   return render(
     <ThemeProvider theme={theme}>
-      <QuantitySheet visible target={{ kind: 'recipe', recipe }} onClose={jest.fn()} />
+      <QuantitySheet
+        visible
+        target={{ kind: 'recipe', recipe }}
+        mealType="DINNER"
+        dayKey="2026-08-21"
+        onClose={jest.fn()}
+        onSaved={onSaved}
+      />
     </ThemeProvider>,
   );
 }
@@ -106,6 +131,10 @@ function renderRecipeSheet(recipe: Recipe) {
 beforeEach(() => {
   mockFindById.mockReset();
   mockGetRecipeWithIngredients.mockReset();
+  mockCreateEntry.mockReset().mockResolvedValue(ok({}));
+  mockUpdateFood.mockReset().mockResolvedValue(ok({}));
+  mockUpdateRecipe.mockReset().mockResolvedValue(ok({}));
+  onSaved.mockReset();
 });
 
 describe('QuantitySheet quick portions (KCAL-179)', () => {
@@ -208,5 +237,126 @@ describe('QuantitySheet recipe mode (KCAL-180)', () => {
     await waitFor(() => expect(mockGetRecipeWithIngredients).toHaveBeenCalled());
     expect(screen.queryByTestId('quantitySheet.portions')).toBeNull();
     expect(mockFindById).not.toHaveBeenCalled();
+  });
+});
+
+describe('QuantitySheet write path (KCAL-181)', () => {
+  it('copies the nutrition values and the label onto the entry (RM16)', async () => {
+    mockFindById.mockResolvedValue(ok({ ...YAOURT, portions: PORTIONS }));
+
+    renderSheet(YAOURT);
+    await waitFor(() => expect(screen.getByTestId('quantitySheet.portions')).toBeTruthy());
+
+    fireEvent.press(screen.getByTestId('quantitySheet.submit'));
+
+    await waitFor(() => expect(mockCreateEntry).toHaveBeenCalledTimes(1));
+    expect(mockCreateEntry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mealType: 'LUNCH',
+        // The median portion ("1 pot", 150 g) is preselected, so the entry carries the
+        // converted reference-unit quantity and records which portion it came from.
+        quantity: 150,
+        unit: 'g',
+        source: { kind: 'food', foodId: YAOURT.id, portionId: 'p-mid' },
+        // Copied, not referenced: renaming or deleting the food later must not change this.
+        label: 'Yaourt nature',
+        calories: 90,
+      }),
+    );
+    // Local midnight, not UTC: parseISO on a date-only key.
+    expect(mockCreateEntry.mock.calls[0][0].date).toEqual(new Date(2026, 7, 21));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+    expect(onSaved.mock.calls[0][0]).toContain('Yaourt nature');
+  });
+
+  it("writes a recipe entry in portions with unit 'portion'", async () => {
+    const rice: Food = { ...YAOURT, id: 'food-rice', name: 'Riz', calories: 400 };
+    mockGetRecipeWithIngredients.mockResolvedValue(
+      ok({
+        recipe: SOUPE,
+        items: [
+          {
+            ingredient: {
+              id: 'ri-1',
+              recipeId: SOUPE.id,
+              foodId: rice.id,
+              quantity: 100,
+              unit: 'g',
+            },
+            food: rice,
+          },
+        ],
+      }),
+    );
+
+    renderRecipeSheet(SOUPE);
+    await waitFor(() =>
+      expect(screen.getByTestId('quantitySheet.kcal')).toHaveTextContent('100 kcal'),
+    );
+
+    fireEvent.press(screen.getByTestId('quantitySheet.submit'));
+
+    await waitFor(() => expect(mockCreateEntry).toHaveBeenCalledTimes(1));
+    expect(mockCreateEntry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mealType: 'DINNER',
+        quantity: 1,
+        unit: 'portion',
+        source: { kind: 'recipe', recipeId: SOUPE.id },
+        label: 'Soupe de potiron',
+        calories: 100,
+      }),
+    );
+  });
+
+  it('refuses an empty quantity (RM14) instead of writing a zero entry', async () => {
+    mockFindById.mockResolvedValue(ok({ ...YAOURT, portions: [] }));
+
+    renderSheet(YAOURT);
+    await waitFor(() => expect(mockFindById).toHaveBeenCalled());
+
+    fireEvent.changeText(screen.getByTestId('quantitySheet.quantityField'), '');
+    await waitFor(() =>
+      expect(screen.getByTestId('quantitySheet.quantityField').props.value).toBe(''),
+    );
+    fireEvent.press(screen.getByTestId('quantitySheet.submit'));
+
+    await waitFor(() => expect(screen.getByText('Indique une quantité.')).toBeTruthy());
+    expect(mockCreateEntry).not.toHaveBeenCalled();
+    expect(onSaved).not.toHaveBeenCalled();
+  });
+
+  it('leaves the favorite flag alone when the toggle is untouched', async () => {
+    mockFindById.mockResolvedValue(ok({ ...YAOURT, portions: [] }));
+
+    renderSheet(YAOURT);
+    await waitFor(() => expect(mockFindById).toHaveBeenCalled());
+
+    fireEvent.press(screen.getByTestId('quantitySheet.submit'));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+    expect(mockUpdateFood).not.toHaveBeenCalled();
+  });
+
+  it('applies the favorite flag when the toggle was switched on', async () => {
+    mockFindById.mockResolvedValue(ok({ ...YAOURT, portions: [] }));
+
+    renderSheet(YAOURT);
+    await waitFor(() => expect(mockFindById).toHaveBeenCalled());
+
+    fireEvent.press(screen.getByTestId('quantitySheet.favorite'));
+    // The submit handler closes over the toggle's value, so wait for the flip to render
+    // before pressing -- otherwise the press runs the pre-toggle closure.
+    await waitFor(() =>
+      expect(screen.getByTestId('quantitySheet.favorite').props.accessibilityState).toEqual(
+        expect.objectContaining({ checked: true }),
+      ),
+    );
+    fireEvent.press(screen.getByTestId('quantitySheet.submit'));
+
+    await waitFor(() =>
+      expect(mockUpdateFood).toHaveBeenCalledWith(YAOURT.id, { isFavorite: true }),
+    );
   });
 });
