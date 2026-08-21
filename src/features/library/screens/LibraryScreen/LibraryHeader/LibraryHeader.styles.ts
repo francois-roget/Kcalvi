@@ -1,5 +1,5 @@
 import type { ViewStyle } from 'react-native';
-import styled from 'styled-components/native';
+import { styled } from 'styled-components/native';
 
 import type { Theme } from '@/ui/theme';
 

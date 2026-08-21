@@ -1,5 +1,5 @@
 import type { TextStyle } from 'react-native';
-import styled from 'styled-components/native';
+import { styled } from 'styled-components/native';
 
 export const StatRow = styled.View`
   flex-direction: row;

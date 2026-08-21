@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet } from 'react-native';
-import styled from 'styled-components/native';
+import { styled } from 'styled-components/native';
 
 export const PickerResultRow = styled(Pressable)`
   padding-vertical: ${({ theme }) => theme.spacing[3]}px;
