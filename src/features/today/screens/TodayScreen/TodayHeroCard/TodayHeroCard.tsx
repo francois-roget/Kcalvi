@@ -16,6 +16,8 @@ export type TodayHeroCardProps = {
    *  re-reducing the same list. */
   consumed: NutritionValues;
   dailyCalorieGoal: number;
+  /** Nothing logged today yet (2s). */
+  isEmptyDay: boolean;
 };
 
 /**
@@ -26,7 +28,7 @@ export type TodayHeroCardProps = {
  * screen it would link to (2m) doesn't exist yet. It is rendered rather than hidden so the
  * three-tile layout is the real one from the start.
  */
-export function TodayHeroCard({ consumed, dailyCalorieGoal }: TodayHeroCardProps) {
+export function TodayHeroCard({ consumed, dailyCalorieGoal, isEmptyDay }: TodayHeroCardProps) {
   const { t } = useTranslation();
 
   const consumedCalories = consumed.calories; // RM04
@@ -39,10 +41,18 @@ export function TodayHeroCard({ consumed, dailyCalorieGoal }: TodayHeroCardProps
   return (
     <HeroCard>
       <GaugeWrapper>
+        {/* Empty day (2s): the gauge sits at 0 -- its track alone -- and the line under it
+            invites a first entry instead of restating a goal nothing has been counted against
+            yet. The « Reprendre plus vite » card the design pairs with this is F15 / Sprint 4
+            and is deliberately absent. */}
         <ArcGauge
           value={consumedCalories}
           goal={dailyCalorieGoal}
-          subtitle={t('today.hero.goal', { goal: formatInteger(dailyCalorieGoal) })}
+          subtitle={
+            isEmptyDay
+              ? t('today.empty.title')
+              : t('today.hero.goal', { goal: formatInteger(dailyCalorieGoal) })
+          }
         />
       </GaugeWrapper>
 

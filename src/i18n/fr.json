@@ -87,6 +87,9 @@
       "seeAll": "Tout voir",
       "empty": "Rien pour l'instant",
       "addTo": "Ajouter au {{meal}}"
+    },
+    "empty": {
+      "title": "Journée à démarrer"
     }
   },
   "meals": {

@@ -37,6 +37,7 @@ export function TodayScreen({ navigation }: TodayScreenProps) {
   // same totals instead of each reducing the day's entries themselves -- interactions.md
   // forbids the UI from adding up kcal or macros at all.
   const consumed = useMemo(() => calculateConsumedNutrition(entries), [entries]);
+  const isEmptyDay = entries.length === 0;
 
   function openAddEntry(mealType: MealType) {
     navigation.navigate('AddEntry', { mealType, date: toDayKey(today) });
@@ -60,7 +61,11 @@ export function TodayScreen({ navigation }: TodayScreenProps) {
               rendering against a placeholder goal the user never set. */}
           {profile ? (
             <>
-              <TodayHeroCard consumed={consumed} dailyCalorieGoal={profile.dailyCalorieGoal} />
+              <TodayHeroCard
+                consumed={consumed}
+                dailyCalorieGoal={profile.dailyCalorieGoal}
+                isEmptyDay={isEmptyDay}
+              />
               <TodayMacros consumed={consumed} profile={profile} />
             </>
           ) : null}
