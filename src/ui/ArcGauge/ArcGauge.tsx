@@ -6,6 +6,8 @@ import { useTheme } from 'styled-components/native';
 import Text from '@/ui/Text';
 import type { Theme } from '@/ui/theme';
 
+import { getContainerStyle, styles } from './ArcGauge.styles';
+
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 const VIEWBOX_WIDTH = 250;
@@ -34,7 +36,7 @@ export function ArcGauge({ value, goal, subtitle, width = VIEWBOX_WIDTH }: ArcGa
   }));
 
   return (
-    <View style={{ width, height, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={getContainerStyle(width, height)}>
       <Svg width={width} height={height} viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}>
         <Path
           d={ARC_PATH}
@@ -54,12 +56,12 @@ export function ArcGauge({ value, goal, subtitle, width = VIEWBOX_WIDTH }: ArcGa
         />
       </Svg>
 
-      <View style={{ position: 'absolute', alignItems: 'center' }}>
+      <View style={styles.valueOverlay}>
         <Text variant="display" color="onDark.primary">
           {Math.round(value)}
         </Text>
         {subtitle ? (
-          <Text variant="caption" color="onDark.muted" style={{ marginTop: 2 }}>
+          <Text variant="caption" color="onDark.muted" style={styles.subtitle}>
             {subtitle}
           </Text>
         ) : null}

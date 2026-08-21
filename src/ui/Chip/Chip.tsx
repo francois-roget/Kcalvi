@@ -4,6 +4,8 @@ import { useTheme } from 'styled-components/native';
 import Text from '@/ui/Text';
 import type { Theme } from '@/ui/theme';
 
+import { getChipLabelStyle, getChipStyle } from './Chip.styles';
+
 export type ChipProps = Omit<PressableProps, 'style'> & {
   label: string;
   selected?: boolean;
@@ -16,23 +18,10 @@ export function Chip({ label, selected = false, ...props }: ChipProps) {
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      style={{
-        paddingVertical: 7,
-        paddingHorizontal: 14,
-        borderRadius: theme.radius.pill,
-        backgroundColor: selected ? theme.colors.ink[800] : theme.colors.sand[300],
-      }}
+      style={getChipStyle(theme, selected)}
       {...props}
     >
-      <Text
-        style={{
-          color: selected ? '#FFFFFF' : theme.colors.text.secondary,
-          fontFamily: selected ? 'Manrope_700Bold' : 'Manrope_600SemiBold',
-          fontSize: 13,
-        }}
-      >
-        {label}
-      </Text>
+      <Text style={getChipLabelStyle(theme, selected)}>{label}</Text>
     </Pressable>
   );
 }
