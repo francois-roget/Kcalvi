@@ -60,18 +60,9 @@ export function FoodFormScreen({ route, navigation }: FoodFormScreenProps) {
           <PortionsSection
             portions={form.portions}
             editingPortionId={form.editingPortionId}
-            onOpenEditor={form.openPortionEditor}
-            onRemove={form.removePortion}
-            editor={{
-              labelText: form.portionLabelText,
-              onLabelChange: form.setPortionLabelText,
-              quantityText: form.portionQuantityText,
-              onQuantityChange: form.setPortionQuantityText,
-              unit: form.portionUnit,
-              onUnitChange: form.setPortionUnit,
-              onCancel: form.cancelPortionEdit,
-              onConfirm: form.confirmPortion,
-            }}
+            onOpenEditor={form.onOpenPortionEditor}
+            onRemove={form.onRemovePortion}
+            editor={form.portionEditor}
           />
 
           <NutritionPreviewCard
