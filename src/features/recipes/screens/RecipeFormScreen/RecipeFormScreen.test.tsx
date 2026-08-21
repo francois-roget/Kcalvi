@@ -1,0 +1,752 @@
+import { BehaviorSubject } from '@nozbe/watermelondb/utils/rx';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
+
+import i18n from '@/i18n';
+import type { Food, FoodPortion, Recipe } from '@/domain/types';
+import type { RecipeFormScreenProps } from '@/navigation/types';
+import { ThemeProvider } from '@/bootstrap/providers/ThemeProvider';
+import { formatDecimal, formatInteger } from '@/utils/format';
+
+import { RecipeFormScreen } from './RecipeFormScreen';
+
+// @expo/vector-icons pulls in expo-font -> expo-asset, which isn't hoisted to the root
+// node_modules in this environment, breaking Node's module resolution under Jest (same
+// issue documented in LibraryScreen.test.tsx). RecipeFormScreen renders an Ionicons
+// trash glyph per ingredient row, so the same lightweight stub is needed here.
+jest.mock('@expo/vector-icons', () => {
+  const { Text: RNText } = require('react-native');
+  return {
+    Ionicons: ({ name }: { name: string }) => <RNText>{name}</RNText>,
+  };
+});
+
+// BottomSheet (the ingredient picker) is always mounted by this screen and calls
+// Reanimated hooks (useSharedValue/useAnimatedStyle) unconditionally, even while
+// `visible` is false -- the package's own jest mock still boots the real worklets
+// runtime, which isn't set up under this project's Jest config (see LibraryScreen.test.tsx),
+// so a small self-contained stub is used instead.
+jest.mock('react-native-reanimated', () => {
+  const { View } = require('react-native');
+  return {
+    __esModule: true,
+    default: { View },
+    useSharedValue: (initial: unknown) => ({ value: initial }),
+    useAnimatedStyle: (factory: () => Record<string, unknown>) => factory(),
+    withTiming: (toValue: unknown) => toValue,
+  };
+});
+
+// RecipeFormScreen imports `database` (the real WatermelonDB SQLiteAdapter instance) at
+// module scope for its edit-mode load (getRecipeWithIngredients). Constructing the real
+// adapter has native/JSI side effects at import time that don't work under Jest, so it's
+// swapped for an inert stub; the edit-mode load itself is driven entirely through the
+// `getRecipeWithIngredients` mock below, which never touches this stub.
+jest.mock('@/data/database', () => ({ database: {} }));
+
+// KCAL-161's edit-mode preload test needs to control what the load resolves to (in
+// particular `recipe.isFavorite`) without exercising the real WatermelonDB query chain.
+jest.mock('@/data/repositories/getRecipeWithIngredients', () => ({
+  getRecipeWithIngredients: (...args: unknown[]) => mockGetRecipeWithIngredients(...args),
+}));
+
+// The real Toggle (favorite field) pulls in Reanimated/Worklets, whose native module isn't
+// available under Jest -- same rationale as FoodFormScreen.test.tsx's stub. Swapped for a
+// plain Pressable test double that still reports accessibilityState.checked so the KCAL-161
+// tests can assert the preloaded/toggled value.
+jest.mock('@/ui/Toggle', () => {
+  const { Pressable, Text: RNText } = require('react-native');
+  return {
+    __esModule: true,
+    default: ({
+      value,
+      onValueChange,
+      testID,
+    }: {
+      value: boolean;
+      onValueChange: (v: boolean) => void;
+      testID?: string;
+    }) => (
+      <Pressable
+        testID={testID}
+        accessibilityRole="switch"
+        accessibilityState={{ checked: value }}
+        onPress={() => onValueChange(!value)}
+      >
+        <RNText>{value ? 'on' : 'off'}</RNText>
+      </Pressable>
+    ),
+  };
+});
+
+jest.mock('@/data/repositories', () => ({
+  foodRepository: {
+    search: (query: string) => mockFoodSearch(query),
+    findById: (id: string) => mockFoodFindById(id),
+    create: jest.fn(),
+    update: jest.fn(),
+  },
+  recipeRepository: {
+    search: jest.fn(),
+    findById: jest.fn(),
+    create: (input: unknown) => mockRecipeCreate(input),
+    update: (id: string, input: unknown) => mockRecipeUpdate(id, input),
+    archive: jest.fn(),
+    delete: jest.fn(),
+    findUsagesByFoodId: jest.fn(),
+  },
+}));
+
+const mockFoodSearch = jest.fn();
+const mockFoodFindById = jest.fn();
+const mockRecipeCreate = jest.fn();
+const mockRecipeUpdate = jest.fn();
+const mockGetRecipeWithIngredients = jest.fn();
+
+// 1 "unité" portion == 50 g, so "3 unité" and "150 g" are the exact same underlying
+// quantity -- the equivalence the KCAL-130 conversion test relies on.
+const EGG_PORTION: FoodPortion = {
+  id: 'portion-egg-unit',
+  foodId: 'food-1',
+  label: 'unité',
+  quantity: 50,
+  unit: 'unit',
+  position: 0,
+};
+
+function makeFood(overrides: Partial<Food> = {}): Food {
+  return {
+    id: 'food-1',
+    name: 'Oeuf',
+    calories: 200,
+    protein: 12,
+    carbs: 1,
+    fat: 14,
+    referenceQuantity: 100,
+    referenceUnit: 'g',
+    isFavorite: false,
+    isArchived: false,
+    portions: [],
+    createdAt: new Date('2026-01-01'),
+    updatedAt: new Date('2026-01-01'),
+    ...overrides,
+  };
+}
+
+// `foodRepository.search()` results never carry portions (KCAL-163b); the picker fetches
+// the full record via `findById()` once a food is selected, which is what actually powers
+// the "servings" quick-add mode below. This fixture is what that findById() call resolves to.
+function makeFoodWithPortion(overrides: Partial<Food> = {}): Food {
+  return makeFood({ portions: [EGG_PORTION], ...overrides });
+}
+
+// Two distinct portions (ascending `position`), used by the KCAL-164 quick-portion-pill tests.
+const PORTION_A: FoodPortion = {
+  id: 'portion-pot',
+  foodId: 'food-1',
+  label: '1 pot',
+  quantity: 150,
+  unit: 'g',
+  position: 0,
+};
+const PORTION_B: FoodPortion = {
+  id: 'portion-tranche',
+  foodId: 'food-1',
+  label: '1 tranche',
+  quantity: 30,
+  unit: 'g',
+  position: 1,
+};
+
+function makeFoodWithTwoPortions(overrides: Partial<Food> = {}): Food {
+  return makeFood({ portions: [PORTION_A, PORTION_B], ...overrides });
+}
+
+function makeRecipe(overrides: Partial<Recipe> = {}): Recipe {
+  return {
+    id: 'recipe-1',
+    name: 'Ma recette',
+    servings: 2,
+    isFavorite: false,
+    isArchived: false,
+    createdAt: new Date('2026-01-01'),
+    updatedAt: new Date('2026-01-01'),
+    ...overrides,
+  };
+}
+
+async function renderScreen(params?: { recipeId: string }) {
+  const navigation = { goBack: jest.fn() } as unknown as RecipeFormScreenProps['navigation'];
+  const route = {
+    key: 'RecipeForm-test',
+    name: 'RecipeForm',
+    params,
+  } as unknown as RecipeFormScreenProps['route'];
+
+  const utils = await render(
+    <ThemeProvider>
+      <RecipeFormScreen navigation={navigation} route={route} />
+    </ThemeProvider>,
+  );
+
+  return { ...utils, navigation };
+}
+
+/** Opens the ingredient picker, selects `food` from the search results, and lands on the
+ * quantity step. `foodRepository.search` is observed from mount (query `''`), so the
+ * results are already populated by the time the picker opens -- no debounce to wait out. */
+async function openQuantityStepFor(utils: Awaited<ReturnType<typeof renderScreen>>, food: Food) {
+  const { getByTestId, findByTestId } = utils;
+  await fireEvent.press(getByTestId('recipeForm.addIngredient'));
+  await fireEvent.press(await findByTestId(`recipeForm.ingredientPicker.result.${food.id}`));
+  await findByTestId('recipeForm.ingredientPicker.quantity');
+}
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockFoodSearch.mockImplementation(() => new BehaviorSubject<Food[]>([makeFood()]));
+  // Default: the selected food resolves to itself with no portions -- individual tests
+  // override this when they need the "servings" quick-add mode to be available.
+  mockFoodFindById.mockImplementation((id: string) =>
+    Promise.resolve({ ok: true, value: makeFood({ id }) }),
+  );
+  mockRecipeCreate.mockResolvedValue({ ok: true, value: makeRecipe() });
+  mockRecipeUpdate.mockResolvedValue({ ok: true, value: makeRecipe() });
+  mockGetRecipeWithIngredients.mockResolvedValue({
+    ok: true,
+    value: { recipe: makeRecipe(), items: [] },
+  });
+});
+
+describe('RecipeFormScreen — total recalculation (KCAL-130/131/134)', () => {
+  it('adds an ingredient entered in the reference unit and recalculates the total', async () => {
+    const food = makeFood();
+    const utils = await renderScreen();
+    const { getByTestId, findAllByText } = utils;
+
+    await openQuantityStepFor(utils, food);
+    await fireEvent.changeText(getByTestId('recipeForm.ingredientPicker.quantityField'), '150');
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
+
+    // 150 g at the food's reference of 100 g / 200 kcal -> 300 kcal total, 1 portion by default.
+    await waitFor(() =>
+      expect(getByTestId('recipeForm.totalWeight').props.value).toBe(formatInteger(150)),
+    );
+    // "300 kcal" appears twice with a single ingredient: once on its row, once as the
+    // per-portion total (1 portion by default) -- both must be present.
+    const kcalMatches = await findAllByText(
+      i18n.t('recipeForm.perPortion.kcalValue', { value: formatInteger(300) }),
+    );
+    expect(kcalMatches).toHaveLength(2);
+  });
+
+  it('adds the equivalent quantity entered in portions and produces the same total (KCAL-130 conversion)', async () => {
+    const food = makeFood();
+    // The search result carries no portions (KCAL-163b) -- the picker's findById() lookup,
+    // triggered on selection, is what actually resolves the food WITH its portion.
+    mockFoodFindById.mockResolvedValueOnce({ ok: true, value: makeFoodWithPortion() });
+    const utils = await renderScreen();
+    const { getByTestId, findAllByText } = utils;
+
+    await openQuantityStepFor(utils, food);
+    await fireEvent.press(await utils.findByTestId('recipeForm.ingredientPicker.mode.servings'));
+    // 3 * 50 g/portion == 150 g -- the exact reference-unit quantity used in the test above.
+    await fireEvent.changeText(getByTestId('recipeForm.ingredientPicker.quantityField'), '3');
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
+
+    await waitFor(() =>
+      expect(getByTestId('recipeForm.totalWeight').props.value).toBe(formatInteger(150)),
+    );
+    const kcalMatches = await findAllByText(
+      i18n.t('recipeForm.perPortion.kcalValue', { value: formatInteger(300) }),
+    );
+    expect(kcalMatches).toHaveLength(2);
+  });
+
+  it('removes an ingredient and recalculates the total back down', async () => {
+    const food = makeFood();
+    const utils = await renderScreen();
+    const { getByTestId, findByTestId, findByText } = utils;
+
+    await openQuantityStepFor(utils, food);
+    await fireEvent.changeText(getByTestId('recipeForm.ingredientPicker.quantityField'), '150');
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
+
+    await waitFor(() =>
+      expect(getByTestId('recipeForm.totalWeight').props.value).toBe(formatInteger(150)),
+    );
+
+    const deleteButton = await findByTestId(/^recipeForm\.ingredient\..*\.delete$/);
+    await fireEvent.press(deleteButton);
+
+    await waitFor(() =>
+      expect(getByTestId('recipeForm.totalWeight').props.value).toBe(formatInteger(0)),
+    );
+    await findByText(i18n.t('recipeForm.ingredients.empty'));
+  });
+});
+
+describe('RecipeFormScreen — submit validation (KCAL-135)', () => {
+  // KCAL-155: the "no ingredients" root error (recipeForm.errors.noIngredients) used to be
+  // reachable by tapping submit on an empty recipe. Now the button is disabled at that point
+  // (see the KCAL-155 describe block below), so `onValid`'s own `ingredients.length === 0`
+  // guard -- kept as defense in depth -- is unreachable from the UI. This test now asserts
+  // the actual current behavior: the tap is a no-op because the button is inert.
+  it('does not submit when there are no ingredients (button is disabled)', async () => {
+    const { getByTestId, navigation } = await renderScreen();
+
+    await fireEvent.changeText(getByTestId('recipeForm.name'), 'Salade de quinoa');
+    await fireEvent.press(getByTestId('recipeForm.submit'));
+
+    expect(mockRecipeCreate).not.toHaveBeenCalled();
+    expect(navigation.goBack).not.toHaveBeenCalled();
+  });
+
+  it('rejects a negative quantity in the picker and does not add the ingredient', async () => {
+    const food = makeFood();
+    const utils = await renderScreen();
+    const { getByTestId, findByText } = utils;
+
+    await openQuantityStepFor(utils, food);
+    await fireEvent.changeText(getByTestId('recipeForm.ingredientPicker.quantityField'), '-10');
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
+
+    await findByText(i18n.t('recipeForm.errors.negativeValue'));
+    // The picker stays open (confirm didn't close it) and no ingredient was added.
+    expect(getByTestId('recipeForm.ingredientPicker.quantity')).toBeTruthy();
+
+    // Backing out to the underlying form still shows the empty state, not a stray row.
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.cancel'));
+    await findByText(i18n.t('recipeForm.ingredients.empty'));
+    expect(mockRecipeCreate).not.toHaveBeenCalled();
+  });
+
+  it('submits the expected payload and navigates back on success', async () => {
+    const food = makeFood();
+    const utils = await renderScreen();
+    const { getByTestId, navigation } = utils;
+
+    await fireEvent.changeText(getByTestId('recipeForm.name'), 'Salade de quinoa');
+    await fireEvent.changeText(getByTestId('recipeForm.servings'), '2');
+
+    await openQuantityStepFor(utils, food);
+    await fireEvent.changeText(getByTestId('recipeForm.ingredientPicker.quantityField'), '150');
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
+
+    await waitFor(() =>
+      expect(getByTestId('recipeForm.totalWeight').props.value).toBe(formatInteger(150)),
+    );
+
+    await fireEvent.press(getByTestId('recipeForm.submit'));
+
+    await waitFor(() => expect(mockRecipeCreate).toHaveBeenCalledTimes(1));
+    expect(mockRecipeCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Salade de quinoa',
+        servings: 2,
+        ingredients: [{ foodId: food.id, quantity: 150, unit: 'g' }],
+      }),
+    );
+    expect(navigation.goBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends isFavorite in the create payload', async () => {
+    const food = makeFood();
+    const utils = await renderScreen();
+    const { getByTestId } = utils;
+
+    await fireEvent.changeText(getByTestId('recipeForm.name'), 'Salade de quinoa');
+    await openQuantityStepFor(utils, food);
+    await fireEvent.changeText(getByTestId('recipeForm.ingredientPicker.quantityField'), '150');
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
+
+    await fireEvent.press(getByTestId('recipeForm.favorite'));
+    await fireEvent.press(getByTestId('recipeForm.submit'));
+
+    await waitFor(() => expect(mockRecipeCreate).toHaveBeenCalledTimes(1));
+    expect(mockRecipeCreate).toHaveBeenCalledWith(expect.objectContaining({ isFavorite: true }));
+  });
+});
+
+describe('RecipeFormScreen — save button gated on ingredients (KCAL-155)', () => {
+  it('disables both submit buttons on an empty form, with a VoiceOver hint', async () => {
+    const { getByTestId } = await renderScreen();
+
+    const headerSave = getByTestId('recipeForm.header.save');
+    const footerSubmit = getByTestId('recipeForm.submit');
+
+    expect(headerSave.props.accessibilityState).toEqual(
+      expect.objectContaining({ disabled: true }),
+    );
+    expect(footerSubmit.props.accessibilityState).toEqual(
+      expect.objectContaining({ disabled: true }),
+    );
+    expect(headerSave.props.accessibilityHint).toBe(i18n.t('recipeForm.submitDisabledHint'));
+    expect(footerSubmit.props.accessibilityHint).toBe(i18n.t('recipeForm.submitDisabledHint'));
+  });
+
+  it('enables both buttons after the first ingredient is added, and disables them again after it is removed', async () => {
+    const food = makeFood();
+    const utils = await renderScreen();
+    const { getByTestId, findByTestId } = utils;
+
+    await openQuantityStepFor(utils, food);
+    await fireEvent.changeText(getByTestId('recipeForm.ingredientPicker.quantityField'), '150');
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
+
+    await waitFor(() => {
+      expect(getByTestId('recipeForm.header.save').props.accessibilityState).toEqual(
+        expect.objectContaining({ disabled: false }),
+      );
+      expect(getByTestId('recipeForm.submit').props.accessibilityState).toEqual(
+        expect.objectContaining({ disabled: false }),
+      );
+    });
+    expect(getByTestId('recipeForm.header.save').props.accessibilityHint).toBeUndefined();
+    expect(getByTestId('recipeForm.submit').props.accessibilityHint).toBeUndefined();
+
+    const deleteButton = await findByTestId(/^recipeForm\.ingredient\..*\.delete$/);
+    await fireEvent.press(deleteButton);
+
+    await waitFor(() => {
+      expect(getByTestId('recipeForm.header.save').props.accessibilityState).toEqual(
+        expect.objectContaining({ disabled: true }),
+      );
+      expect(getByTestId('recipeForm.submit').props.accessibilityState).toEqual(
+        expect.objectContaining({ disabled: true }),
+      );
+    });
+  });
+});
+
+describe('RecipeFormScreen — favorite toggle (KCAL-161)', () => {
+  it('preloads an existing favorite recipe with the toggle already active, and keeps it favorite on save without touching it', async () => {
+    const favoriteRecipe = makeRecipe({ id: 'recipe-fav', isFavorite: true });
+    // The screen requires >= 1 ingredient to enable submit (KCAL-155); the preload path
+    // populates `ingredients` from `items`, so give it one to keep this a realistic edit.
+    const food = makeFood();
+    mockGetRecipeWithIngredients.mockResolvedValue({
+      ok: true,
+      value: {
+        recipe: favoriteRecipe,
+        items: [
+          {
+            ingredient: {
+              id: 'ing-1',
+              recipeId: favoriteRecipe.id,
+              foodId: food.id,
+              quantity: 150,
+              unit: 'g',
+            },
+            food,
+          },
+        ],
+      },
+    });
+
+    const { findByTestId } = await renderScreen({ recipeId: favoriteRecipe.id });
+
+    // Regression check for the KCAL-161 data-loss trap: the toggle must reflect the
+    // preloaded value, not the form's default (false).
+    const toggle = await findByTestId('recipeForm.favorite');
+    expect(toggle.props.accessibilityState).toEqual(expect.objectContaining({ checked: true }));
+
+    await fireEvent.press(await findByTestId('recipeForm.submit'));
+
+    await waitFor(() => expect(mockRecipeUpdate).toHaveBeenCalledTimes(1));
+    expect(mockRecipeUpdate).toHaveBeenCalledWith(
+      favoriteRecipe.id,
+      expect.objectContaining({ isFavorite: true }),
+    );
+  });
+
+  it('un-favorites on save when the toggle is switched off', async () => {
+    const favoriteRecipe = makeRecipe({ id: 'recipe-fav', isFavorite: true });
+    const food = makeFood();
+    mockGetRecipeWithIngredients.mockResolvedValue({
+      ok: true,
+      value: {
+        recipe: favoriteRecipe,
+        items: [
+          {
+            ingredient: {
+              id: 'ing-1',
+              recipeId: favoriteRecipe.id,
+              foodId: food.id,
+              quantity: 150,
+              unit: 'g',
+            },
+            food,
+          },
+        ],
+      },
+    });
+
+    const { findByTestId } = await renderScreen({ recipeId: favoriteRecipe.id });
+
+    await fireEvent.press(await findByTestId('recipeForm.favorite'));
+    await fireEvent.press(await findByTestId('recipeForm.submit'));
+
+    await waitFor(() => expect(mockRecipeUpdate).toHaveBeenCalledTimes(1));
+    expect(mockRecipeUpdate).toHaveBeenCalledWith(
+      favoriteRecipe.id,
+      expect.objectContaining({ isFavorite: false }),
+    );
+  });
+});
+
+describe('RecipeFormScreen — portion traceability (KCAL-163d)', () => {
+  it('sends the portionId of the food_portions row used when the "servings" quick mode is used', async () => {
+    const food = makeFood();
+    mockFoodFindById.mockResolvedValueOnce({ ok: true, value: makeFoodWithPortion() });
+    const utils = await renderScreen();
+    const { getByTestId } = utils;
+
+    await fireEvent.changeText(getByTestId('recipeForm.name'), 'Salade de quinoa');
+    await openQuantityStepFor(utils, food);
+    await fireEvent.press(await utils.findByTestId('recipeForm.ingredientPicker.mode.servings'));
+    await fireEvent.changeText(getByTestId('recipeForm.ingredientPicker.quantityField'), '3');
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
+
+    await fireEvent.press(getByTestId('recipeForm.submit'));
+
+    await waitFor(() => expect(mockRecipeCreate).toHaveBeenCalledTimes(1));
+    expect(mockRecipeCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ingredients: [
+          { foodId: food.id, quantity: 150, unit: EGG_PORTION.label, portionId: EGG_PORTION.id },
+        ],
+      }),
+    );
+  });
+
+  it('does not send a portionId when the ingredient is entered directly in the reference unit', async () => {
+    const food = makeFood();
+    const utils = await renderScreen();
+    const { getByTestId } = utils;
+
+    await fireEvent.changeText(getByTestId('recipeForm.name'), 'Salade de quinoa');
+    await openQuantityStepFor(utils, food);
+    await fireEvent.changeText(getByTestId('recipeForm.ingredientPicker.quantityField'), '150');
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
+
+    await fireEvent.press(getByTestId('recipeForm.submit'));
+
+    await waitFor(() => expect(mockRecipeCreate).toHaveBeenCalledTimes(1));
+    expect(mockRecipeCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ingredients: [{ foodId: food.id, quantity: 150, unit: 'g', portionId: undefined }],
+      }),
+    );
+  });
+
+  it('resolves the portion label for a preloaded ingredient whose portionId still matches a food portion', async () => {
+    const recipe = makeRecipe({ id: 'recipe-1' });
+    const food = makeFoodWithPortion();
+    mockGetRecipeWithIngredients.mockResolvedValue({
+      ok: true,
+      value: {
+        recipe,
+        items: [
+          {
+            ingredient: {
+              id: 'ing-1',
+              recipeId: recipe.id,
+              foodId: food.id,
+              // 150 g == 3 * the 50 g portion (EGG_PORTION) -- stored quantity is always in
+              // reference units regardless of how it was entered.
+              quantity: 150,
+              unit: EGG_PORTION.label,
+              portionId: EGG_PORTION.id,
+            },
+            food,
+          },
+        ],
+      },
+    });
+
+    const { findByText } = await renderScreen({ recipeId: recipe.id });
+
+    // Displayed as "3,0 unité" (the portion count, not the 150 g reference quantity).
+    await findByText(`${formatDecimal(3)} ${EGG_PORTION.label}`);
+  });
+
+  it("falls back to the reference-unit display when the ingredient's portionId no longer resolves (portion deleted)", async () => {
+    const recipe = makeRecipe({ id: 'recipe-1' });
+    // The food's portions list no longer contains the portion this ingredient was entered
+    // with -- e.g. it was deleted from the food after the ingredient was added.
+    const food = makeFood({ portions: [] });
+    mockGetRecipeWithIngredients.mockResolvedValue({
+      ok: true,
+      value: {
+        recipe,
+        items: [
+          {
+            ingredient: {
+              id: 'ing-1',
+              recipeId: recipe.id,
+              foodId: food.id,
+              quantity: 150,
+              unit: 'unité',
+              portionId: 'portion-deleted',
+            },
+            food,
+          },
+        ],
+      },
+    });
+
+    const { findByText, queryByText } = await renderScreen({ recipeId: recipe.id });
+
+    // Falls back to the reference-unit quantity/unit -- never throws, never shows an error.
+    await findByText(`${formatDecimal(150)} ${i18n.t('recipeForm.units.g')}`);
+    expect(queryByText(`${formatDecimal(3)} unité`)).toBeNull();
+  });
+});
+
+describe('RecipeFormScreen — quick portion pills (KCAL-164)', () => {
+  it('renders exactly one pill per saved portion (max 3, ascending position), and tapping one pre-fills the converted quantity', async () => {
+    const food = makeFood();
+    mockFoodFindById.mockResolvedValueOnce({ ok: true, value: makeFoodWithTwoPortions() });
+    const utils = await renderScreen();
+    const { getByTestId, findByTestId, queryByTestId } = utils;
+
+    await openQuantityStepFor(utils, food);
+
+    // Exactly the food's 2 portions, no derived (reference-unit) pill alongside them.
+    await findByTestId(`recipeForm.ingredientPicker.pill.${PORTION_A.id}`);
+    await findByTestId(`recipeForm.ingredientPicker.pill.${PORTION_B.id}`);
+    expect(queryByTestId('recipeForm.ingredientPicker.pill.ratio-1')).toBeNull();
+
+    await fireEvent.press(getByTestId(`recipeForm.ingredientPicker.pill.${PORTION_B.id}`));
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
+
+    // PORTION_B is "1 tranche" == 30 g -- tapping it (count 1) must land on exactly that
+    // converted reference-unit quantity.
+    await waitFor(() =>
+      expect(getByTestId('recipeForm.totalWeight').props.value).toBe(
+        formatInteger(PORTION_B.quantity),
+      ),
+    );
+  });
+
+  it('derives 50 / 100 / 150 g pills for a food with no saved portions and a 100 g reference quantity', async () => {
+    const food = makeFood(); // referenceQuantity: 100, referenceUnit: 'g', portions: [] by default.
+    const utils = await renderScreen();
+
+    await openQuantityStepFor(utils, food);
+
+    await utils.findByText(
+      i18n.t('recipeForm.picker.referencePill', { value: formatInteger(50), unit: 'g' }),
+    );
+    await utils.findByText(
+      i18n.t('recipeForm.picker.referencePill', { value: formatInteger(100), unit: 'g' }),
+    );
+    await utils.findByText(
+      i18n.t('recipeForm.picker.referencePill', { value: formatInteger(150), unit: 'g' }),
+    );
+  });
+
+  it('derives 1 / 2 / 3 unit pills for a food with no saved portions referenced "by unit"', async () => {
+    const food = makeFood({ referenceUnit: 'unit', referenceQuantity: 1 });
+    mockFoodSearch.mockImplementation(() => new BehaviorSubject<Food[]>([food]));
+    // The default mockFoodFindById fixture ignores overrides (it only carries `id` through
+    // makeFood()), which would revert this food's referenceUnit back to 'g' once the
+    // picker's post-selection upgrade resolves -- override it to keep 'unit'.
+    mockFoodFindById.mockResolvedValueOnce({ ok: true, value: food });
+    const utils = await renderScreen();
+
+    await openQuantityStepFor(utils, food);
+
+    await utils.findByText(i18n.t('recipeForm.picker.unitPill', { count: 1 }));
+    await utils.findByText(i18n.t('recipeForm.picker.unitPill', { count: 2 }));
+    await utils.findByText(i18n.t('recipeForm.picker.unitPill', { count: 3 }));
+  });
+
+  it('produces identical recipe totals whether a quantity is entered via a pill tap or typed manually (KCAL-149 parity, extended)', async () => {
+    const food = makeFood();
+    mockFoodFindById.mockResolvedValue({ ok: true, value: makeFoodWithTwoPortions() });
+    const utils = await renderScreen();
+    const { getByTestId } = utils;
+
+    // First ingredient: typed manually, in the reference unit, the exact converted amount
+    // the PORTION_B pill below is expected to produce (30 g).
+    await openQuantityStepFor(utils, food);
+    await fireEvent.changeText(
+      getByTestId('recipeForm.ingredientPicker.quantityField'),
+      String(PORTION_B.quantity),
+    );
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
+
+    await waitFor(() =>
+      expect(getByTestId('recipeForm.totalWeight').props.value).toBe(
+        formatInteger(PORTION_B.quantity),
+      ),
+    );
+
+    // Second ingredient of the same food, this time via the PORTION_B pill (count 1, left
+    // unedited) -- must contribute exactly the same reference-unit quantity as the manual
+    // entry above, so the total exactly doubles.
+    await openQuantityStepFor(utils, food);
+    await fireEvent.press(getByTestId(`recipeForm.ingredientPicker.pill.${PORTION_B.id}`));
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
+
+    await waitFor(() =>
+      expect(getByTestId('recipeForm.totalWeight').props.value).toBe(
+        formatInteger(PORTION_B.quantity * 2),
+      ),
+    );
+  });
+
+  it('shows the portion label after reopening a recipe whose ingredient was added via a pill', async () => {
+    const food = makeFood();
+    mockFoodFindById.mockResolvedValueOnce({ ok: true, value: makeFoodWithTwoPortions() });
+    const utils = await renderScreen();
+    const { getByTestId } = utils;
+
+    await fireEvent.changeText(getByTestId('recipeForm.name'), 'Salade de quinoa');
+    await openQuantityStepFor(utils, food);
+    await fireEvent.press(getByTestId(`recipeForm.ingredientPicker.pill.${PORTION_A.id}`));
+    await fireEvent.press(getByTestId('recipeForm.ingredientPicker.confirm'));
+    await fireEvent.press(getByTestId('recipeForm.submit'));
+
+    await waitFor(() => expect(mockRecipeCreate).toHaveBeenCalledTimes(1));
+    expect(mockRecipeCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ingredients: [
+          {
+            foodId: food.id,
+            quantity: PORTION_A.quantity,
+            unit: PORTION_A.label,
+            portionId: PORTION_A.id,
+          },
+        ],
+      }),
+    );
+
+    // Simulate reopening the just-created recipe: the stored ingredient carries the
+    // portionId submitted above, at the reference-unit quantity the pill tap produced.
+    const recipe = makeRecipe({ id: 'recipe-pill' });
+    mockGetRecipeWithIngredients.mockResolvedValue({
+      ok: true,
+      value: {
+        recipe,
+        items: [
+          {
+            ingredient: {
+              id: 'ing-pill',
+              recipeId: recipe.id,
+              foodId: food.id,
+              quantity: PORTION_A.quantity,
+              unit: PORTION_A.label,
+              portionId: PORTION_A.id,
+            },
+            food: makeFoodWithTwoPortions(),
+          },
+        ],
+      },
+    });
+
+    const { findByText } = await renderScreen({ recipeId: recipe.id });
+    await findByText(`${formatDecimal(1)} ${PORTION_A.label}`);
+  });
+});

@@ -2,6 +2,8 @@ import { View } from 'react-native';
 
 import Chip from '@/ui/Chip';
 
+import { styles } from './SegmentedControl.styles';
+
 export type SegmentedControlOption<T extends string> = {
   label: string;
   value: T;
@@ -13,13 +15,13 @@ export type SegmentedControlProps<T extends string> = {
   onChange: (value: T) => void;
 };
 
-export function SegmentedControl<T extends string>({
+function SegmentedControl<T extends string>({
   options,
   value,
   onChange,
 }: SegmentedControlProps<T>) {
   return (
-    <View style={{ flexDirection: 'row', gap: 7 }}>
+    <View style={styles.container}>
       {options.map((option) => (
         <Chip
           key={option.value}

@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 3,
+  version: 5,
   tables: [
     tableSchema({
       name: 'user_profiles',
@@ -62,6 +62,7 @@ export const schema = appSchema({
         { name: 'servings', type: 'number' },
         { name: 'notes', type: 'string', isOptional: true },
         { name: 'is_favorite', type: 'boolean' },
+        { name: 'is_archived', type: 'boolean' },
         { name: 'created_at', type: 'number' },
         { name: 'updated_at', type: 'number' },
       ],
@@ -73,6 +74,23 @@ export const schema = appSchema({
         { name: 'food_id', type: 'string', isIndexed: true },
         { name: 'quantity', type: 'number' },
         { name: 'unit', type: 'string' },
+        // KCAL-163d: set when the ingredient was entered via a food_portions row (the
+        // display then reads that portion's label); null when entered directly in the
+        // food's reference unit. Replaces the old unit-comparison heuristic, which became
+        // ambiguous the moment a food could have more than one portion sharing a unit.
+        { name: 'portion_id', type: 'string', isOptional: true, isIndexed: true },
+      ],
+    }),
+    tableSchema({
+      name: 'food_portions',
+      columns: [
+        { name: 'food_id', type: 'string', isIndexed: true },
+        { name: 'label', type: 'string' }, // e.g. "1 pot", "1 c. à soupe"
+        { name: 'quantity', type: 'number' }, // expressed in the owning Food's reference_unit
+        { name: 'unit', type: 'string' },
+        { name: 'position', type: 'number' }, // display order
+        { name: 'created_at', type: 'number' },
+        { name: 'updated_at', type: 'number' },
       ],
     }),
     tableSchema({

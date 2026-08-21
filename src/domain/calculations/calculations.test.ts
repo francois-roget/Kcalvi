@@ -1,4 +1,4 @@
-import type { Food } from '../types';
+import type { Food, FoodPortion } from '../types';
 import {
   calculateBMR,
   calculateBurnedCalories,
@@ -13,6 +13,7 @@ import {
   calculateTDEE,
   calculateWeeklyBudget,
   calculateWeeklyNetConsumption,
+  convertPortionToReferenceQuantity,
   getWeekBoundaries,
 } from './index';
 
@@ -27,6 +28,7 @@ const food: Food = {
   referenceUnit: 'g',
   isFavorite: false,
   isArchived: false,
+  portions: [],
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -48,6 +50,34 @@ describe('calculateProportionalNutrition (RM02)', () => {
       carbs: 0,
       fat: 0,
     });
+  });
+});
+
+describe('convertPortionToReferenceQuantity', () => {
+  it('converts a portion count into the equivalent reference-unit quantity', () => {
+    const eggPortion: FoodPortion = {
+      id: 'portion-1',
+      foodId: food.id,
+      label: '1 oeuf',
+      quantity: 60,
+      unit: 'unit',
+      position: 0,
+    };
+
+    expect(convertPortionToReferenceQuantity(eggPortion, 2)).toBe(120);
+  });
+
+  it('returns 0 for a zero count', () => {
+    const potPortion: FoodPortion = {
+      id: 'portion-2',
+      foodId: food.id,
+      label: '1 pot',
+      quantity: 150,
+      unit: 'g',
+      position: 0,
+    };
+
+    expect(convertPortionToReferenceQuantity(potPortion, 0)).toBe(0);
   });
 });
 

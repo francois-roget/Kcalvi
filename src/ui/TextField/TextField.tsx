@@ -4,57 +4,54 @@ import { useTheme } from 'styled-components/native';
 import Text from '@/ui/Text';
 import type { Theme } from '@/ui/theme';
 
+import {
+  getErrorTextStyle,
+  getInputContainerStyle,
+  getInputTextStyle,
+  styles,
+} from './TextField.styles';
+
 export type TextFieldProps = Omit<TextInputProps, 'style'> & {
   label: string;
   unit?: string;
   error?: string;
   numeric?: boolean;
+  /** Optional helper text rendered below the field when there is no error. */
+  hint?: string;
 };
 
-export function TextField({ label, unit, error, numeric = false, ...props }: TextFieldProps) {
+function TextField({ label, unit, error, numeric = false, hint, ...props }: TextFieldProps) {
   const theme = useTheme() as Theme;
 
   return (
     <View>
-      <Text variant="overline" color="text.tertiary" style={{ marginBottom: 6 }}>
+      <Text variant="overline" color="text.tertiary" style={styles.label}>
         {label}
       </Text>
 
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          backgroundColor: '#FFFFFF',
-          borderWidth: 1,
-          borderColor: error ? theme.colors.terracotta[600] : theme.colors.border.default,
-          borderRadius: theme.radius.md,
-          paddingVertical: 12,
-          paddingHorizontal: 14,
-        }}
-      >
+      <View style={[styles.inputContainer, getInputContainerStyle(theme, Boolean(error))]}>
         <TextInput
-          style={{
-            flex: 1,
-            fontFamily: numeric ? 'Manrope_800ExtraBold' : 'Manrope_700Bold',
-            fontSize: numeric ? 17 : 15,
-            color: theme.colors.text.primary,
-            padding: 0,
-          }}
+          style={[styles.input, getInputTextStyle(theme, numeric)]}
           placeholderTextColor={theme.colors.text.disabled}
           keyboardType={numeric ? 'decimal-pad' : props.keyboardType}
           {...props}
         />
         {unit ? (
-          <Text variant="caption" color="text.quaternary" style={{ marginLeft: 8 }}>
+          <Text variant="caption" color="text.quaternary" style={styles.unit}>
             {unit}
           </Text>
         ) : null}
       </View>
 
       {error ? (
-        <Text variant="caption" style={{ color: theme.colors.terracotta[600], marginTop: 6 }}>
+        <Text variant="caption" style={[styles.helperText, getErrorTextStyle(theme)]}>
           {error}
+        </Text>
+      ) : null}
+
+      {!error && hint ? (
+        <Text variant="caption" color="text.tertiary" style={styles.helperText}>
+          {hint}
         </Text>
       ) : null}
     </View>

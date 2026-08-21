@@ -1,9 +1,38 @@
 module.exports = {
+  // Press "e" in --watch/--watchAll mode to toggle coverage collection on/off (default key
+  // for `collectCoverage` from this plugin -- off by default so watch mode stays fast on
+  // every keystroke-triggered run; coverage is only computed on demand).
+  watchPlugins: [['jest-watch-toggle-config', { setting: 'collectCoverage' }]],
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/**/*.test.{ts,tsx}',
+    '!src/**/*.dbtest.ts',
+    '!src/**/index.ts',
+    '!src/i18n/**',
+  ],
+  coverageDirectory: '<rootDir>/coverage',
+  // Jest's 5s default is too tight for the first test of a screen suite on CI: that test pays
+  // the one-off cost of booting the React Native / styled-components / i18n module graph on top
+  // of its own work -- locally ~220ms against ~35ms for the following tests in the same file,
+  // but the 2-vCPU GitHub runner is roughly an order of magnitude slower (whole screen suites
+  // take 7-11s there vs ~1s locally), which pushed the first RecipeFormScreen test over the
+  // limit while the identical ones after it passed.
+  // Must stay at the root: `testTimeout` is a global option, and Jest silently ignores it when
+  // it is set inside a `projects` entry (check with `jest --showConfig`).
+  testTimeout: 30000,
   projects: [
     {
       displayName: 'App',
       preset: 'jest-expo',
-      testPathIgnorePatterns: ['/node_modules/', '/.maestro/'],
+      // '<rootDir>/.claude/worktrees/' excludes agent worktrees nested under the repo root --
+      // without it, a worktree's own node_modules pulls in a second React copy and every
+      // component test in this project crashes with "Cannot read properties of null (reading
+      // 'useContext')". Anchored to <rootDir> (not a bare '/.claude/worktrees/') so this only
+      // excludes *nested* worktrees seen from the main repo -- a bare pattern also matches a
+      // worktree's own checkout path when jest runs from inside that worktree, silently
+      // excluding every App test there.
+      testPathIgnorePatterns: ['/node_modules/', '/.maestro/', '<rootDir>/.claude/worktrees/'],
     },
     {
       // Tests that hit a real SQLite database (better-sqlite3) through the real

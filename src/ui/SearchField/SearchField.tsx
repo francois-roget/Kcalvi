@@ -1,27 +1,48 @@
-import { TextInput, type TextInputProps } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import { Pressable, TextInput, View, type TextInputProps } from 'react-native';
 import { useTheme } from 'styled-components/native';
 
 import type { Theme } from '@/ui/theme';
 
-export type SearchFieldProps = Omit<TextInputProps, 'style'>;
+import {
+  clearButtonStyle,
+  getClearIconSize,
+  getContainerStyle,
+  getInputStyle,
+} from './SearchField.styles';
 
-export function SearchField(props: SearchFieldProps) {
+export type SearchFieldProps = Omit<TextInputProps, 'style'> & {
+  /** Called when the user taps the clear (×) button. Optional: without it, no clear button is rendered. */
+  onClear?: () => void;
+};
+
+function SearchField({ onClear, value, ...props }: SearchFieldProps) {
   const theme = useTheme() as Theme;
+  const { t } = useTranslation();
+
+  const showClearButton = Boolean(onClear) && Boolean(value);
 
   return (
-    <TextInput
-      style={{
-        backgroundColor: theme.colors.sand[300],
-        borderRadius: theme.radius.md,
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        fontFamily: 'Manrope_500Medium',
-        fontSize: 14,
-        color: theme.colors.text.primary,
-      }}
-      placeholderTextColor="#9AA5AD"
-      {...props}
-    />
+    <View style={getContainerStyle(theme)}>
+      <TextInput
+        style={getInputStyle(theme, showClearButton)}
+        placeholderTextColor="#9AA5AD"
+        value={value}
+        {...props}
+      />
+      {showClearButton ? (
+        <Pressable
+          onPress={onClear}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.clearSearch')}
+          hitSlop={10}
+          style={clearButtonStyle}
+        >
+          <Ionicons name="close-circle" size={getClearIconSize(theme)} color="#9AA5AD" />
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 

@@ -4,9 +4,13 @@ import type { DomainError, Food, Result } from '@/domain/types';
 
 export type CreateFoodInput = Omit<
   Food,
-  'id' | 'createdAt' | 'updatedAt' | 'isFavorite' | 'isArchived'
+  'id' | 'createdAt' | 'updatedAt' | 'isFavorite' | 'isArchived' | 'portions'
 > &
-  Partial<Pick<Food, 'isFavorite' | 'isArchived'>>;
+  Partial<Pick<Food, 'isFavorite' | 'isArchived'>> & {
+    // Omitted or `[]`: no quick portions. Present: the repository writes this exact list
+    // (full replacement, not a diff -- see LocalFoodRepository.create/update).
+    portions?: { label: string; quantity: number; unit: string; position: number }[];
+  };
 
 export type UpdateFoodInput = Partial<CreateFoodInput>;
 

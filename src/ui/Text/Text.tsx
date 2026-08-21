@@ -19,7 +19,7 @@ function resolveColor(theme: Theme, color: TextColor): string {
   return (theme.colors[scheme] as Record<string, string>)[tone];
 }
 
-export function Text({ variant = 'body', color = 'text.primary', ...props }: TextProps) {
+function Text({ variant = 'body', color = 'text.primary', ...props }: TextProps) {
   const theme = useTheme() as Theme;
   const typo = theme.typography[variant];
 

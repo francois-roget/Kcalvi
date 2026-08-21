@@ -1,0 +1,151 @@
+# Sprint 2 (Recettes) E2E flow — TECHNICAL_SPECS.MD §16.2 lists "créer une recette" among the
+# 4 critical Maestro flows for the MVP acceptance criteria (§38).
+#
+# Self-contained and idempotent: `clearState` wipes the app's data (WatermelonDB's SQLite file
+# included) so every run starts from a just-installed app, then onboarding.yaml recreates the
+# profile the tabs need. Nothing is assumed about the device's prior state, and repeated runs no
+# longer pile up duplicate "Poulet Maestro E2E" foods and "Recette Maestro E2E" recipes.
+#
+# This is deliberately a state *reset*, not seed data -- fixtures for development remain an open
+# question (TECHNICAL_SPECS.MD §20), and nothing here presumes an answer to it.
+#
+# Fixed 2026-08-19 (was reported 2026-08-18 as "typing in `recipeForm.ingredientPicker.searchField`
+# closes the BottomSheet"): the sheet was never closing, it was hidden *behind* the iOS keyboard.
+# `BottomSheet` positions the sheet at `bottom: 0` inside a full-screen `Modal`, and nothing lifted
+# it when the keyboard came up, so the screenshots showed the bare form underneath. The sheet now
+# tracks the keyboard frame and translates up by its height (`src/ui/BottomSheet/BottomSheet.tsx`).
+# Watch this step if it regresses: a failure here means the sheet is off-screen, not unmounted.
+appId: be.rogetconcept.kcalvi
+---
+- launchApp:
+    clearState: true
+
+# Development-build detour, skipped entirely on a standalone/EAS build (where the launcher never
+# appears and the JS bundle is embedded): `clearState` wipes the whole app container, and on a
+# dev build that container also holds the dev client's saved dev-server URL. Without it the app
+# boots into the dev client's own launcher instead of Kcalvi, so it is reconnected by deep link
+# (`exp+kcalvi` is registered by expo-dev-client, see the app's CFBundleURLTypes). The generous
+# wait covers Metro rebuilding and shipping the bundle; the dev-menu hint that follows is shown
+# on the first launch after a state wipe, i.e. every run.
+- runFlow:
+    when:
+      visible: "Development Build"
+    commands:
+      - openLink: "exp+kcalvi://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081"
+      - extendedWaitUntil:
+          visible: "Continue"
+          timeout: 120000
+      # "Continue" only dismisses the explanatory bubble and leaves the dev menu itself open
+      # on top of the app, so it has to be closed too before Kcalvi is reachable.
+      - tapOn: "Continue"
+      - tapOn: "Close"
+      # Drag the floating dev-tools bubble out of the header zone. A state wipe resets it to the
+      # top-right corner, right on top of the app's header actions, where it swallowed the tap on
+      # "Enregistrer" and opened the dev menu instead of saving. Bottom-left is where it sits by
+      # default once moved, and it overlaps nothing this flow taps. (The dev menu's own "Tools
+      # button" toggle looks like the cleaner fix, but tapping that row only closes the menu --
+      # the bubble stays.)
+      - swipe:
+          start: "90%, 12%"
+          end: "12%, 88%"
+
+- runFlow: onboarding.yaml
+# Plain "Bibliothèque" doesn't match: the tab's Ionicons glyph + label are merged into one
+# accessibility element by iOS ("<icon-glyph>, Bibliothèque"), and `tapOn`'s text selector
+# requires a full match -- a wildcard regex works around it.
+- tapOn: ".*Bibliothèque.*"
+# Prerequisite: a Food to use as the recipe's ingredient (KCAL-109..118, Sprint 1).
+#
+# The empty-state CTA, not the header's `library.addButton`: the run starts from a cleared app, so
+# the library is always empty here and LibraryScreen renders LibraryEmptyState instead of its
+# header actions (KCAL-108). The header buttons come back further down, once this food exists.
+- assertVisible:
+    id: "library.empty.primaryCta"
+- tapOn:
+    id: "library.empty.primaryCta"
+- tapOn:
+    id: "foodForm.name"
+- inputText: "Poulet Maestro E2E"
+- tapOn:
+    id: "foodForm.referenceUnit.g"
+# Round numbers on purpose (200 kcal / 100 g reference): with a 150 g quantity and 2 servings
+# further down, every derived value below is an exact integer (300, then 150) -- no dependency
+# on Intl.NumberFormat's rounding mode for a would-be .5 boundary case.
+- tapOn:
+    id: "foodForm.calories"
+- inputText: "200"
+- tapOn:
+    id: "foodForm.protein"
+- inputText: "30"
+- tapOn:
+    id: "foodForm.carbs"
+- inputText: "0"
+- tapOn:
+    id: "foodForm.fat"
+- inputText: "8"
+# The header "Enregistrer" button calls the exact same handleSubmit(onValid) as the bottom
+# "foodForm.submit" button, but stays above the keyboard -- the bottom one is covered by the
+# numeric keypad after filling the last field, so it's not reliably tappable here.
+- tapOn:
+    id: "foodForm.header.save"
+- assertVisible: ".*Poulet Maestro E2E.*"
+
+# The recipe itself (KCAL-131..137, Sprint 2).
+- tapOn:
+    id: "library.addRecipeButton"
+- tapOn:
+    id: "recipeForm.name"
+- inputText: "Recette Maestro E2E"
+- tapOn:
+    id: "recipeForm.servings"
+- eraseText
+- inputText: "2"
+# `hideKeyboard` isn't supported for this custom NumberField -- tapping a static, non-interactive
+# label blurs the servings field and dismisses the keyboard instead. Without this, the still-open
+# keyboard absorbs the next tap (dismissing itself instead of pressing "addIngredient" underneath
+# it), and the picker never opens.
+- tapOn: "Ingrédients"
+
+- tapOn:
+    id: "recipeForm.addIngredient"
+- tapOn:
+    id: "recipeForm.ingredientPicker.searchField"
+- inputText: "Poulet Maestro E2E"
+# Matching by id, not text: a text match here is ambiguous between the search field itself
+# (whose current value also contains "Poulet Maestro E2E") and the actual result row -- Maestro
+# picked the field once during authoring, which re-typed into it and broke the query. The result
+# row's id always starts with this prefix regardless of the food's generated id, and doesn't
+# collide with "recipeForm.ingredientPicker.searchField".
+#
+# Explicit wait first, as its own step: the debounced search (250ms) replaces "Aucun aliment
+# trouvé." with the result row, shifting layout right as `tapOn` would otherwise be computing
+# tap coordinates -- observed landing on the sheet's backdrop instead (which closes it on tap,
+# per components.md) rather than the row. Resolving visibility here first, then letting the
+# following `tapOn` re-query the (by-then stable) hierarchy on its own, avoids that race.
+- extendedWaitUntil:
+    visible:
+      id: "recipeForm.ingredientPicker.result..*"
+    timeout: 5000
+- tapOn:
+    id: "recipeForm.ingredientPicker.result..*"
+- assertVisible:
+    id: "recipeForm.ingredientPicker.quantity"
+- tapOn:
+    id: "recipeForm.ingredientPicker.quantityField"
+- inputText: "150"
+# Same keyboard-dismiss workaround as above -- tap the (static) food name header in the sheet.
+- tapOn: ".*Poulet Maestro E2E.*"
+- tapOn:
+    id: "recipeForm.ingredientPicker.confirm"
+
+# 150 g of the 100 g / 200 kcal food above = 300 kcal, confirms the ingredient was actually
+# added and RM03/F09 recalculated live (KCAL-134), not just that the row exists.
+- assertVisible: ".*300 kcal.*"
+
+# Same reasoning as foodForm above: the header button, not the (possibly off-screen) bottom one.
+- tapOn:
+    id: "recipeForm.header.save"
+
+# Back on the Library screen: the new recipe is visible, closing the loop this flow exists to
+# check (there was previously no UI path to reach RecipeForm in create mode at all).
+- assertVisible: ".*Recette Maestro E2E.*"

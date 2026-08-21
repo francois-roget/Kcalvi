@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
 import type { Theme } from '@/ui/theme';
 import { darken } from '@/utils/color';
@@ -47,3 +47,30 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
   },
 });
+
+export function getPressableStyle(
+  theme: Theme,
+  variant: ButtonVariant,
+  size: ButtonSize,
+  pressed: boolean,
+  disabled: boolean,
+): ViewStyle {
+  const { backgroundColor } = getVariantColors(theme, variant, pressed);
+  return {
+    height: getButtonHeight(size),
+    backgroundColor,
+    borderRadius: theme.radius.lg,
+    // Full-width buttons (lg) keep the wider padding from the design handoff;
+    // constrained ones (md, e.g. side-by-side action rows) need more room for
+    // the label so it doesn't wrap (see KCAL-154).
+    paddingHorizontal: size === 'lg' ? theme.spacing[6] : theme.spacing[4],
+    opacity: disabled ? 0.45 : 1,
+  };
+}
+
+export function getLabelStyle(theme: Theme, variant: ButtonVariant, pressed: boolean): TextStyle {
+  const { textColor } = getVariantColors(theme, variant, pressed);
+  return variant === 'ghost'
+    ? { color: textColor, fontFamily: 'Manrope_700Bold', fontSize: 13 }
+    : { color: textColor };
+}

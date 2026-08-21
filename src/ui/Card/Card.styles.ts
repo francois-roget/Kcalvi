@@ -4,6 +4,19 @@ import type { Theme } from '@/ui/theme';
 
 export type CardTone = 'light' | 'dark' | 'info' | 'accent' | 'warm' | 'muted' | 'dashed';
 
+export function getLayoutStyle(
+  theme: Theme,
+  radius: keyof Theme['radius'],
+  paddingVertical: number,
+  paddingHorizontal: number,
+): ViewStyle {
+  return {
+    borderRadius: theme.radius[radius],
+    paddingVertical,
+    paddingHorizontal,
+  };
+}
+
 export function getToneStyle(theme: Theme, tone: CardTone): ViewStyle {
   switch (tone) {
     case 'light':

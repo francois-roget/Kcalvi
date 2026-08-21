@@ -293,16 +293,25 @@ Déjà structurel via le modèle de données (§5.1) : `DiaryEntry` stocke les v
 
 ## 9.2 Composants
 
-Un dossier par composant, co-localisant styles et tests :
+Un dossier par composant, co-localisant styles, logique et tests :
 
 ```text
 ui/Button/
 ├── index.tsx
 ├── Button.styles.ts
+├── Button.helpers.ts
 └── Button.test.tsx
 ```
 
-Même convention dans les composants de feature (`features/<feature>/components/`).
+Même convention dans les composants de feature (`features/<feature>/components/`) **et dans les écrans** (`features/<feature>/screens/`) : un écran volumineux se découpe selon les mêmes règles que n'importe quel composant, pas d'exception liée à sa taille.
+
+Règles de lisibilité (humains, hors tests) :
+
+- **Taille du composant.** Le fichier `<Composant>.tsx` (ou `index.tsx`) reste sous ~100 lignes. Au-delà, c'est un signal qu'il faut extraire un sous-composant, déplacer de la logique vers `.helpers.ts`, ou déplacer des styles vers `.styles.ts` — pas d'exception pour les écrans.
+- **Styles dans `<Composant>.styles.ts`.** Les styled-components et objets de style du composant vivent dans ce fichier dédié, importés dans le composant. Le fichier du composant ne contient pas de définition de style.
+- **Pas de style inline.** Interdit : `<MonComposant style={{ paddingTop: 6 }}>`. Toute valeur de style, même ponctuelle, est nommée et définie dans `<Composant>.styles.ts`.
+- **Logique des handlers dans `<Composant>.helpers.ts`.** Un handler (`onPress`, `onSubmit`, callback d'effet...) de plus de 5 lignes est extrait en fonction pure ou en hook dans `<Composant>.helpers.ts`, et importé dans le composant. Le composant ne garde que l'appel du handler, pas son implémentation.
+- **Hooks custom locaux au composant.** Un hook qui encapsule de la logique à état (n'existant que pour ce composant, pas réutilisé ailleurs) va aussi dans `<Composant>.helpers.ts` plutôt que dans `hooks/` — `hooks/` (dossier feature) et `src/hooks/` (partagé) restent réservés aux hooks effectivement partagés entre plusieurs composants.
 
 ## 9.3 Listes
 

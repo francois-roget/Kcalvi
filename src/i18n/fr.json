@@ -9,6 +9,7 @@
   "common": {
     "kcal": "kcal",
     "close": "Fermer",
+    "clearSearch": "Effacer la recherche",
     "starsRating": "{{count}} sur {{max}} étoiles"
   },
   "validation": {
@@ -112,11 +113,14 @@
     "category": "Catégorie",
     "categoryPlaceholder": "Ex. Produits laitiers",
     "quickPortions": {
-      "title": "Portions rapides",
+      "title": "Portions usuelles",
       "add": "+ Ajouter",
       "confirm": "Valider",
       "cancel": "Annuler",
-      "quantityLabel": "Quantité"
+      "labelField": "Nom de la portion",
+      "labelPlaceholder": "Ex. 1 pot",
+      "quantityLabel": "Quantité",
+      "deleteLabel": "Supprimer la portion {{label}}"
     },
     "preview": {
       "title": "Aperçu pour {{quantity}} {{unit}}",
@@ -131,8 +135,104 @@
       "generic": "Une erreur est survenue. Réessaie."
     }
   },
+  "recipeForm": {
+    "header": {
+      "cancel": "Annuler",
+      "createTitle": "Nouvelle recette",
+      "editTitle": "Modifier la recette",
+      "save": "Enregistrer"
+    },
+    "loading": "Chargement…",
+    "loadError": "Impossible de charger cette recette.",
+    "name": "Nom",
+    "namePlaceholder": "Ex. Salade de quinoa",
+    "servings": "Nombre de portions",
+    "servingsHint": "Cette recette se divise en {{count}} portions. Les valeurs affichées ci-dessous sont pour une portion.",
+    "totalWeight": "Poids total",
+    "totalWeightMixedHint": "Non calculable : les ingrédients utilisent des unités différentes.",
+    "submitDisabledHint": "Ajoute au moins un ingrédient pour enregistrer cette recette.",
+    "favorite": "Favori",
+    "ingredients": {
+      "title": "Ingrédients",
+      "empty": "Aucun ingrédient pour l'instant.",
+      "kcalValue": "{{value}} kcal",
+      "deleteLabel": "Supprimer {{name}}"
+    },
+    "addIngredient": "+ Ajouter un ingrédient",
+    "perPortion": {
+      "title": "Par portion (calcul auto)",
+      "kcalValue": "{{value}} kcal",
+      "protein": "Protéines",
+      "carbs": "Glucides",
+      "fat": "Lipides"
+    },
+    "errors": {
+      "nameRequired": "Le nom est obligatoire.",
+      "servingsInvalid": "Le nombre de portions doit être supérieur à 0.",
+      "noIngredients": "Ajoutez au moins un ingrédient.",
+      "negativeValue": "La quantité ne peut pas être négative.",
+      "invalidNumber": "Veuillez entrer un nombre valide.",
+      "notFound": "Cette recette est introuvable.",
+      "generic": "Une erreur est survenue. Réessaie."
+    },
+    "submit": "Enregistrer la recette",
+    "picker": {
+      "searchTitle": "Choisir un aliment",
+      "searchPlaceholder": "Rechercher un aliment…",
+      "noResults": "Aucun aliment trouvé.",
+      "modeReference": "Par {{unit}}",
+      "modeServings": "En portions usuelles",
+      "quantityLabel": "Quantité",
+      "servingsLabel": "Nombre de portions",
+      "referencePill": "{{value}} {{unit}}",
+      "unitPill_one": "{{count}} unité",
+      "unitPill_other": "{{count}} unités",
+      "cancel": "Annuler",
+      "confirm": "Ajouter"
+    },
+    "units": {
+      "g": "g",
+      "ml": "ml",
+      "unit": "unité"
+    }
+  },
+  "recipeDetail": {
+    "loading": "Chargement de la recette…",
+    "notFoundError": "Recette introuvable.",
+    "header": {
+      "backLabel": "Retour",
+      "edit": "Modifier"
+    },
+    "subtitle": {
+      "portions_one": "{{count}} portion",
+      "portions_other": "{{count}} portions",
+      "favorite": "Favori"
+    },
+    "perPortion": {
+      "title": "Par portion",
+      "kcalLabel": "kcal",
+      "macroProtein": "P {{value}} g",
+      "macroCarbs": "G {{value}} g",
+      "macroFat": "L {{value}} g"
+    },
+    "ingredients": {
+      "sectionTitle": "Ingrédients",
+      "kcalValue": "{{value}} kcal",
+      "totalLabel": "Total recette"
+    },
+    "actions": {
+      "duplicate": "Dupliquer",
+      "addToMeal": "Ajouter au repas",
+      "addToMealHint": "Disponible à partir du sprint 3, avec le journal des repas."
+    },
+    "duplicate": {
+      "copyName": "{{name}} (copie)",
+      "error": "Impossible de dupliquer cette recette. Réessaie."
+    }
+  },
   "library": {
     "addButtonLabel": "Créer un aliment",
+    "addRecipeButtonLabel": "Créer une recette",
     "searchPlaceholder": "Rechercher un aliment ou une marque",
     "filters": {
       "all": "Tout",
@@ -147,16 +247,27 @@
     },
     "sections": {
       "recipes": "Recettes",
-      "recipesComingSoon": "Bientôt disponible",
       "foods": "Aliments"
     },
     "list": {
-      "noResults": "Aucun résultat"
+      "noResults": "Aucun résultat",
+      "noResultsForQuery": "Aucun résultat pour « {{query}} »"
     },
     "food": {
       "addFavorite": "Ajouter {{name}} aux favoris",
       "removeFavorite": "Retirer {{name}} des favoris",
-      "deleteLabel": "Supprimer {{name}}"
+      "deleteLabel": "Supprimer {{name}}",
+      "kcalPerReference": "{{kcal}} kcal pour {{quantity}} {{unit}}",
+      "kcalPerUnit": "{{kcal}} kcal par unité"
+    },
+    "recipe": {
+      "servings_one": "{{count}} portion",
+      "servings_other": "{{count}} portions",
+      "addFavorite": "Ajouter {{name}} aux favoris",
+      "removeFavorite": "Retirer {{name}} des favoris",
+      "deleteLabel": "Supprimer {{name}}",
+      "kcalPerPortion_one": "{{kcal}} kcal par portion · {{count}} portion",
+      "kcalPerPortion_other": "{{kcal}} kcal par portion · {{count}} portions"
     },
     "empty": {
       "title": "Ta bibliothèque est vide",
@@ -169,12 +280,20 @@
       "title": "Supprimer {{name}} ?",
       "message": "Cette action est irréversible.",
       "confirm": "Supprimer",
-      "confirmAnyway": "Supprimer quand même",
       "cancel": "Annuler",
       "archive": "Archiver",
       "inUseTitle_one": "Cet aliment est utilisé dans {{count}} recette.",
       "inUseTitle_other": "Cet aliment est utilisé dans {{count}} recettes.",
-      "inUseMessage": "Sa suppression pourrait affecter ces recettes."
+      "inUseMessage": "Il ne peut pas être supprimé sans casser cette recette. En l'archivant, il disparaît de ta bibliothèque mais reste disponible dans les recettes qui l'utilisent.",
+      "deleteError": "La suppression a échoué. Réessaie.",
+      "archiveError": "L'archivage a échoué. Réessaie."
+    },
+    "archiveRecipeDialog": {
+      "title": "Archiver {{name}} ?",
+      "message": "Elle disparaîtra de ta bibliothèque. Les entrées de journal existantes ne sont pas modifiées.",
+      "archive": "Archiver",
+      "cancel": "Annuler",
+      "archiveError": "L'archivage a échoué. Réessaie."
     }
   }
 }

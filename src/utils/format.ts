@@ -33,3 +33,21 @@ export function formatKg(value: number): string {
 export function parseLocaleNumber(value: string): number {
   return Number(value.trim().replace(',', '.'));
 }
+
+/**
+ * Translates a Food reference/serving unit code (e.g. `g`, `ml`, `unit`) via the shared
+ * `recipeForm.units.*` i18n keys, falling back to the raw stored value for any code outside
+ * the known set -- defensive only, since Food's reference/serving units are already
+ * constrained to that set by FoodFormScreen.
+ *
+ * KCAL-158: previously duplicated locally in RecipeFormScreen and, worse, absent from
+ * RecipeDetailScreen -- which rendered `ingredient.unit` raw, showing "unit" instead of
+ * "unité" for unit-referenced foods. Shared here so every screen that displays a unit code
+ * gets the fix.
+ */
+export function unitLabel(
+  t: (key: string, options?: Record<string, unknown>) => string,
+  unit: string,
+): string {
+  return t(`recipeForm.units.${unit}`, { defaultValue: unit });
+}
