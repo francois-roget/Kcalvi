@@ -1,8 +1,9 @@
-import type { Food, FoodPortion } from '../types';
+import type { DiaryEntry, Food, FoodPortion } from '../types';
 import {
   calculateBMR,
   calculateBurnedCalories,
   calculateConsumedCalories,
+  calculateConsumedNutrition,
   calculateDailyCalorieGoal,
   calculateDailyDeficit,
   calculateNetCalories,
@@ -116,6 +117,36 @@ describe('multiplyNutrition', () => {
   it('is the inverse of calculatePortionNutrition', () => {
     const totals = { calories: 1000, protein: 50, carbs: 120, fat: 33.6 };
     expect(multiplyNutrition(calculatePortionNutrition(totals, 4), 4)).toEqual(totals);
+  });
+});
+
+describe('calculateConsumedNutrition (KCAL-184)', () => {
+  // Entries carry their own copied values (RM16), so aggregation is a plain sum.
+  const entries = [
+    { calories: 250, protein: 12.5, carbs: 30, fat: 8.4 },
+    { calories: 150, protein: 7.5, carbs: 10, fat: 3.6 },
+  ] as DiaryEntry[];
+
+  it('sums all four values across the day', () => {
+    expect(calculateConsumedNutrition(entries)).toEqual({
+      calories: 400,
+      protein: 20,
+      carbs: 40,
+      fat: 12,
+    });
+  });
+
+  it('returns zeroes for an empty day rather than undefined', () => {
+    expect(calculateConsumedNutrition([])).toEqual({
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+    });
+  });
+
+  it('agrees with calculateConsumedCalories (RM04), which is its calories', () => {
+    expect(calculateConsumedCalories(entries)).toBe(calculateConsumedNutrition(entries).calories);
   });
 });
 

@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
-import { calculateConsumedCalories, calculateRemainingCalories } from '@/domain/calculations';
-import type { DiaryEntry } from '@/domain/types';
+import { calculateRemainingCalories } from '@/domain/calculations';
+import type { NutritionValues } from '@/domain/types';
 import ArcGauge from '@/ui/ArcGauge';
 import HeroCard from '@/ui/HeroCard';
 import StatTile from '@/ui/StatTile';
@@ -11,7 +11,10 @@ import { formatInteger } from '@/utils/format';
 import { GaugeWrapper, TileRow, styles } from './TodayHeroCard.styles';
 
 export type TodayHeroCardProps = {
-  entries: DiaryEntry[];
+  /** Already aggregated by `calculateConsumedNutrition` (KCAL-184): the screen sums the day's
+   *  entries once and shares the result with the macro cards, rather than each block
+   *  re-reducing the same list. */
+  consumed: NutritionValues;
   dailyCalorieGoal: number;
 };
 
@@ -23,21 +26,21 @@ export type TodayHeroCardProps = {
  * screen it would link to (2m) doesn't exist yet. It is rendered rather than hidden so the
  * three-tile layout is the real one from the start.
  */
-export function TodayHeroCard({ entries, dailyCalorieGoal }: TodayHeroCardProps) {
+export function TodayHeroCard({ consumed, dailyCalorieGoal }: TodayHeroCardProps) {
   const { t } = useTranslation();
 
-  const consumed = calculateConsumedCalories(entries); // RM04
+  const consumedCalories = consumed.calories; // RM04
   // No activity data yet, so net consumption is just what was eaten. Passed through
   // calculateRemainingCalories (RM07) as the plain `net` it expects rather than special-cased
   // -- when RM05's burned calories arrive in Sprint 5, only `net` changes here.
   const burned = 0;
-  const remaining = calculateRemainingCalories(dailyCalorieGoal, consumed - burned);
+  const remaining = calculateRemainingCalories(dailyCalorieGoal, consumedCalories - burned);
 
   return (
     <HeroCard>
       <GaugeWrapper>
         <ArcGauge
-          value={consumed}
+          value={consumedCalories}
           goal={dailyCalorieGoal}
           subtitle={t('today.hero.goal', { goal: formatInteger(dailyCalorieGoal) })}
         />
@@ -46,7 +49,7 @@ export function TodayHeroCard({ entries, dailyCalorieGoal }: TodayHeroCardProps)
       <View style={styles.tileRow}>
         <TileRow>
           <View style={styles.tile}>
-            <StatTile label={t('today.hero.consumed')} value={formatInteger(consumed)} />
+            <StatTile label={t('today.hero.consumed')} value={formatInteger(consumedCalories)} />
           </View>
           <View style={styles.tile}>
             <StatTile label={t('today.hero.burned')} value={formatInteger(burned)} />

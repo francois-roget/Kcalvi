@@ -76,6 +76,11 @@
       "consumed": "Consommé",
       "burned": "Brûlé",
       "remaining": "Restant"
+    },
+    "macros": {
+      "protein": "Protéines",
+      "carbs": "Glucides",
+      "fat": "Lipides"
     }
   },
   "meals": {

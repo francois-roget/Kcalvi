@@ -98,9 +98,29 @@ export function multiplyNutrition(values: NutritionValues, factor: number): Nutr
   };
 }
 
-/** RM04 */
+/**
+ * Totals a day's diary entries across all four values (KCAL-184).
+ *
+ * Every entry already carries its own copied nutrition values (RM16), so this is a plain sum
+ * with no per-entry recalculation. It exists because interactions.md forbids the UI from
+ * adding up kcal or macros itself, and nothing in the domain aggregated the three macros --
+ * only calories, via RM04.
+ */
+export function calculateConsumedNutrition(diaryEntries: DiaryEntry[]): NutritionValues {
+  return diaryEntries.reduce<NutritionValues>(
+    (totals, entry) => ({
+      calories: totals.calories + entry.calories,
+      protein: totals.protein + entry.protein,
+      carbs: totals.carbs + entry.carbs,
+      fat: totals.fat + entry.fat,
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0 },
+  );
+}
+
+/** RM04 — the calories of `calculateConsumedNutrition`, kept as its own named rule. */
 export function calculateConsumedCalories(diaryEntries: DiaryEntry[]): number {
-  return diaryEntries.reduce((total, entry) => total + entry.calories, 0);
+  return calculateConsumedNutrition(diaryEntries).calories;
 }
 
 /** RM05 */

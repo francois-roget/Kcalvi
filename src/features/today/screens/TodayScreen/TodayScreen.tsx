@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
 
 import { diaryEntryRepository, profileRepository } from '@/data/repositories';
+import { calculateConsumedNutrition } from '@/domain/calculations';
 import type { DiaryEntry } from '@/domain/types';
 import { TodayHeader } from '@/features/today/components/TodayHeader';
 import { useObservable } from '@/hooks/useObservable';
 
+import { TodayMacros } from './TodayMacros';
 import { Content, Safe } from './TodayScreen.styles';
 import { TodayHeroCard } from './TodayHeroCard';
 
@@ -22,6 +24,11 @@ export function TodayScreen() {
   const entriesObservable = useMemo(() => diaryEntryRepository.observeByDate(today), [today]);
   const entries = useObservable(entriesObservable, EMPTY_ENTRIES);
 
+  // Aggregated once for the whole screen (KCAL-184): the hero and the macro cards read the
+  // same totals instead of each reducing the day's entries themselves -- interactions.md
+  // forbids the UI from adding up kcal or macros at all.
+  const consumed = useMemo(() => calculateConsumedNutrition(entries), [entries]);
+
   return (
     <Safe edges={['top', 'bottom']}>
       <TodayHeader name={profile?.name ?? null} date={today} />
@@ -30,7 +37,10 @@ export function TodayScreen() {
         {/* The hero needs the goal to draw the gauge, so it waits for the profile rather than
             rendering against a placeholder goal the user never set. */}
         {profile ? (
-          <TodayHeroCard entries={entries} dailyCalorieGoal={profile.dailyCalorieGoal} />
+          <>
+            <TodayHeroCard consumed={consumed} dailyCalorieGoal={profile.dailyCalorieGoal} />
+            <TodayMacros consumed={consumed} profile={profile} />
+          </>
         ) : null}
       </Content>
     </Safe>
