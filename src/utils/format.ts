@@ -77,3 +77,21 @@ export function foodKcalLabel(
     unit: unitLabel(t, food.referenceUnit),
   });
 }
+
+/**
+ * Converts a domain number to the comma-decimal text NumberField/`parseLocaleNumber` expect --
+ * the exact inverse of `parseLocaleNumber` above.
+ *
+ * KCAL-178: moved here from RecipeFormScreen.helpers so QuantitySheet shares it rather than
+ * making a third copy of the fr-BE comma round-trip.
+ */
+export function numberToText(value: number): string {
+  return String(value).replace('.', ',');
+}
+
+/** `parseLocaleNumber` for optional input: blank text yields `undefined` rather than NaN. */
+export function toNumberOrUndefined(text: string): number | undefined {
+  const trimmed = text.trim();
+  if (trimmed === '') return undefined;
+  return parseLocaleNumber(trimmed);
+}

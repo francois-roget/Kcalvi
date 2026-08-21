@@ -78,6 +78,12 @@
     "SNACK": "Collation",
     "DINNER": "Dîner"
   },
+  "quantitySheet": {
+    "quantityLabel": "Quantité",
+    "protein": "P {{value}}",
+    "carbs": "G {{value}}",
+    "fat": "L {{value}}"
+  },
   "addEntry": {
     "searchPlaceholder": "Rechercher un aliment ou une recette",
     "filters": {

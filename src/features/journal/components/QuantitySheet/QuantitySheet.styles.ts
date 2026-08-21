@@ -14,6 +14,12 @@ export const HeaderRow = styled.View`
   gap: ${({ theme }) => theme.spacing[4]}px;
 `;
 
+export const MacroRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing[5]}px;
+`;
+
 export const styles = StyleSheet.create({
   nameColumn: { flexShrink: 1 },
   referenceLabel: { marginTop: 2 },

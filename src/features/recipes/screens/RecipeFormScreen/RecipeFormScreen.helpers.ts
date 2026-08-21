@@ -16,7 +16,13 @@ import { assertNonNegative } from '@/domain/validation';
 import { SEARCH_DEBOUNCE_MS, useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useObservable } from '@/hooks/useObservable';
 import type { RecipeFormScreenProps } from '@/navigation/types';
-import { formatInteger, parseLocaleNumber, unitLabel } from '@/utils/format';
+import {
+  formatInteger,
+  numberToText,
+  parseLocaleNumber,
+  toNumberOrUndefined,
+  unitLabel,
+} from '@/utils/format';
 
 const EMPTY_FOODS: Food[] = [];
 
@@ -58,17 +64,6 @@ const DEFAULT_VALUES: RecipeFormValues = {
   servings: '1',
   isFavorite: false,
 };
-
-/** Converts a domain number to the comma-decimal text NumberField/parseLocaleNumber expect. */
-export function numberToText(value: number): string {
-  return String(value).replace('.', ',');
-}
-
-export function toNumberOrUndefined(text: string): number | undefined {
-  const trimmed = text.trim();
-  if (trimmed === '') return undefined;
-  return parseLocaleNumber(trimmed);
-}
 
 /**
  * Resolves what to display for an ingredient loaded from storage (edit mode), using the
