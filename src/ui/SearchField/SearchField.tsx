@@ -5,6 +5,13 @@ import { useTheme } from 'styled-components/native';
 
 import type { Theme } from '@/ui/theme';
 
+import {
+  clearButtonStyle,
+  getClearIconSize,
+  getContainerStyle,
+  getInputStyle,
+} from './SearchField.styles';
+
 export type SearchFieldProps = Omit<TextInputProps, 'style'> & {
   /** Called when the user taps the clear (×) button. Optional: without it, no clear button is rendered. */
   onClear?: () => void;
@@ -17,24 +24,9 @@ export function SearchField({ onClear, value, ...props }: SearchFieldProps) {
   const showClearButton = Boolean(onClear) && Boolean(value);
 
   return (
-    <View
-      style={{
-        backgroundColor: theme.colors.sand[300],
-        borderRadius: theme.radius.md,
-        flexDirection: 'row',
-        alignItems: 'center',
-      }}
-    >
+    <View style={getContainerStyle(theme)}>
       <TextInput
-        style={{
-          flex: 1,
-          paddingVertical: 12,
-          paddingLeft: 16,
-          paddingRight: showClearButton ? 8 : 16,
-          fontFamily: 'Manrope_500Medium',
-          fontSize: 14,
-          color: theme.colors.text.primary,
-        }}
+        style={getInputStyle(theme, showClearButton)}
         placeholderTextColor="#9AA5AD"
         value={value}
         {...props}
@@ -45,15 +37,9 @@ export function SearchField({ onClear, value, ...props }: SearchFieldProps) {
           accessibilityRole="button"
           accessibilityLabel={t('common.clearSearch')}
           hitSlop={10}
-          style={{
-            paddingHorizontal: 10,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+          style={clearButtonStyle}
         >
-          {/* Icon size + hitSlop (10 each side) reaches theme.layout.minTouchTarget (44pt)
-              without stretching the container's height beyond its original visual style. */}
-          <Ionicons name="close-circle" size={theme.layout.minTouchTarget - 20} color="#9AA5AD" />
+          <Ionicons name="close-circle" size={getClearIconSize(theme)} color="#9AA5AD" />
         </Pressable>
       ) : null}
     </View>

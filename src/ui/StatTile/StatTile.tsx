@@ -1,10 +1,12 @@
 import { useTheme } from 'styled-components/native';
 
-import Card, { type CardProps } from '@/ui/Card';
-import Text, { type TextColor } from '@/ui/Text';
+import Card from '@/ui/Card';
+import Text from '@/ui/Text';
 import type { Theme } from '@/ui/theme';
 
-export type StatTileTone = 'dark' | 'accent' | 'warm';
+import { getToneConfig, getValueTextStyle, type StatTileTone } from './StatTile.styles';
+
+export type { StatTileTone };
 
 export type StatTileProps = {
   label: string;
@@ -12,15 +14,9 @@ export type StatTileProps = {
   tone?: StatTileTone;
 };
 
-const TONE_CONFIG: Record<StatTileTone, { cardTone: CardProps['tone']; labelColor: TextColor }> = {
-  dark: { cardTone: 'dark', labelColor: 'onDark.subtle' },
-  accent: { cardTone: 'accent', labelColor: 'text.tertiary' },
-  warm: { cardTone: 'warm', labelColor: 'text.tertiary' },
-};
-
 export function StatTile({ label, value, tone = 'dark' }: StatTileProps) {
   const theme = useTheme() as Theme;
-  const config = TONE_CONFIG[tone];
+  const config = getToneConfig(tone);
   const isDark = tone === 'dark';
 
   return (
@@ -33,16 +29,7 @@ export function StatTile({ label, value, tone = 'dark' }: StatTileProps) {
       <Text variant="micro" color={config.labelColor}>
         {label}
       </Text>
-      <Text
-        style={{
-          fontFamily: 'Manrope_700Bold',
-          fontSize: 15,
-          color: isDark ? theme.colors.onDark.primary : theme.colors.text.primary,
-          marginTop: 4,
-        }}
-      >
-        {value}
-      </Text>
+      <Text style={getValueTextStyle(theme, tone)}>{value}</Text>
     </Card>
   );
 }
