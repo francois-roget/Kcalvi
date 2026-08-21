@@ -1,4 +1,4 @@
-import { format as dateFnsFormat } from 'date-fns';
+import { format as dateFnsFormat, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 import type { Food } from '@/domain/types';
@@ -109,4 +109,21 @@ export function toNumberOrUndefined(text: string): number | undefined {
  */
 export function formatLongDate(date: Date): string {
   return dateFnsFormat(date, 'EEEE d MMMM', { locale: fr });
+}
+
+/**
+ * The `yyyy-MM-dd` local day key used as an AddEntry route param (KCAL-172): navigation params
+ * must stay serializable, and a diary entry belongs to a day rather than an instant.
+ */
+export function toDayKey(date: Date): string {
+  return dateFnsFormat(date, 'yyyy-MM-dd');
+}
+
+/**
+ * Inverse of `toDayKey`. `parseISO` resolves a date-only string at local midnight, unlike
+ * `new Date('2026-08-21')`, which parses it as UTC and lands on the previous day for any device
+ * west of Greenwich. The repository normalizes to startOfDay again on write (KCAL-169).
+ */
+export function parseDayKey(dayKey: string): Date {
+  return parseISO(dayKey);
 }

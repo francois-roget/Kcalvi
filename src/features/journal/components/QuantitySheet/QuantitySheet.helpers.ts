@@ -1,4 +1,3 @@
-import { parseISO } from 'date-fns';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { database } from '@/data/database';
@@ -14,7 +13,7 @@ import {
 } from '@/domain/calculations';
 import type { Food, FoodPortion, MealType, NutritionValues, Recipe } from '@/domain/types';
 import { assertNonNegative } from '@/domain/validation';
-import { numberToText, toNumberOrUndefined } from '@/utils/format';
+import { numberToText, parseDayKey, toNumberOrUndefined } from '@/utils/format';
 
 /** Local alias for the i18next translation function, kept minimal (same as the other screens). */
 export type TFunction = (key: string, options?: Record<string, unknown>) => string;
@@ -116,16 +115,6 @@ function useRecipePortionNutrition(recipe: Recipe | null): NutritionValues | und
 
   if (!recipe) return undefined;
   return perPortion?.id === recipe.id ? perPortion.values : undefined;
-}
-
-/**
- * Turns the route's `yyyy-MM-dd` day key back into a Date (KCAL-172 keeps navigation params
- * serializable). `parseISO` resolves a date-only string at local midnight, unlike
- * `new Date('2026-08-21')`, which parses it as UTC and lands on the previous day for any
- * device west of Greenwich. The repository normalizes to startOfDay again on write (KCAL-169).
- */
-export function parseDayKey(dayKey: string): Date {
-  return parseISO(dayKey);
 }
 
 /**

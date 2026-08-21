@@ -81,6 +81,12 @@
       "protein": "Protéines",
       "carbs": "Glucides",
       "fat": "Lipides"
+    },
+    "meals": {
+      "title": "Repas",
+      "seeAll": "Tout voir",
+      "empty": "Rien pour l'instant",
+      "addTo": "Ajouter au {{meal}}"
     }
   },
   "meals": {
