@@ -5,7 +5,7 @@ import BottomSheet from '@/ui/BottomSheet';
 import NumberField from '@/ui/NumberField';
 import QuickPortionButton from '@/ui/QuickPortionButton';
 import Text from '@/ui/Text';
-import { foodKcalLabel, formatGrams, formatKcal, unitLabel } from '@/utils/format';
+import { foodKcalLabel, formatGrams, formatInteger, formatKcal, unitLabel } from '@/utils/format';
 
 import { useQuantitySheet, type QuantitySheetTarget } from './QuantitySheet.helpers';
 import { Container, HeaderRow, MacroRow, PortionRow, styles } from './QuantitySheet.styles';
@@ -21,13 +21,14 @@ export type QuantitySheetProps = {
  * sheet at a stable height across its states, the KCAL-160 fix for the ingredient picker:
  * without it the sheet visibly resizes as content appears.
  *
- * The sheet never computes nutrition itself -- it renders what `calculateProportionalNutrition`
- * (RM02) returns, per interactions.md.
+ * The sheet never computes nutrition itself -- it renders what domain/calculations returns,
+ * per interactions.md.
  */
 export function QuantitySheet({ visible, target, onClose }: QuantitySheetProps) {
   const { t } = useTranslation();
   const {
     food,
+    perPortion,
     portions,
     selectedPortionId,
     selectPortion,
@@ -36,14 +37,32 @@ export function QuantitySheet({ visible, target, onClose }: QuantitySheetProps) 
     nutrition,
   } = useQuantitySheet(target);
 
+  const isFood = target.kind === 'food';
+  const name = isFood ? (food?.name ?? target.food.name) : target.recipe.name;
+
+  // A recipe's reference line is its per-portion kcal, which shows the servings line until the
+  // ingredients resolve rather than a provisional "0 kcal"; a food's is its stored
+  // per-reference-unit line.
+  let referenceLabel = '';
+  if (isFood) {
+    referenceLabel = foodKcalLabel(t, food ?? target.food);
+  } else if (perPortion === undefined) {
+    referenceLabel = t('library.recipe.servings', { count: target.recipe.servings });
+  } else {
+    referenceLabel = t('library.recipe.kcalPerPortion', {
+      kcal: formatInteger(perPortion.calories),
+      count: target.recipe.servings,
+    });
+  }
+
   return (
     <BottomSheet visible={visible} onClose={onClose} minHeightRatio={0.55}>
       <Container testID="quantitySheet">
         <HeaderRow>
           <View style={styles.nameColumn}>
-            <Text variant="h2">{food.name}</Text>
+            <Text variant="h2">{name}</Text>
             <Text variant="caption" color="text.tertiary" style={styles.referenceLabel}>
-              {foodKcalLabel(t, food)}
+              {referenceLabel}
             </Text>
           </View>
 
@@ -60,14 +79,19 @@ export function QuantitySheet({ visible, target, onClose }: QuantitySheetProps) 
 
         <NumberField
           testID="quantitySheet.quantityField"
-          label={t('quantitySheet.quantityLabel')}
-          unit={unitLabel(t, food.referenceUnit)}
+          label={isFood ? t('quantitySheet.quantityLabel') : t('quantitySheet.servingsLabel')}
+          unit={
+            isFood
+              ? unitLabel(t, (food ?? target.food).referenceUnit)
+              : t('quantitySheet.portionUnit')
+          }
           value={quantityText}
           onChangeText={editQuantity}
         />
 
-        {/* No portions saved on this food: the quantity field alone carries the entry, starting
-            at the food's reference quantity. */}
+        {/* Quick portions are a food-only affordance: a recipe is already counted in portions,
+            so there is nothing to shortcut. A food with no saved portions shows none either --
+            the quantity field alone carries the entry, starting at its reference quantity. */}
         {portions.length === 0 ? null : (
           <PortionRow testID="quantitySheet.portions">
             {portions.map((portion) => (

@@ -1,20 +1,32 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { database } from '@/data/database';
 import { foodRepository } from '@/data/repositories';
+import { getRecipeWithIngredients } from '@/data/repositories/getRecipeWithIngredients';
 import {
+  calculatePortionNutrition,
   calculateProportionalNutrition,
+  calculateRecipeTotals,
   convertPortionToReferenceQuantity,
+  multiplyNutrition,
 } from '@/domain/calculations';
-import type { Food, FoodPortion, NutritionValues } from '@/domain/types';
+import type { Food, FoodPortion, NutritionValues, Recipe } from '@/domain/types';
 import { numberToText, toNumberOrUndefined } from '@/utils/format';
 
 /**
  * What the sheet is adding to the journal. A discriminated union, mirroring
- * `AddEntryScreen`'s `EntryResult`: the recipe arm (KCAL-180) is entered in portions and never
- * goes through RM02, so the two cases stay structurally distinct rather than sharing an
- * ambiguous quantity field.
+ * `AddEntryScreen`'s `EntryResult`: a recipe entry is counted in portions and never goes
+ * through RM02, so the two cases stay structurally distinct rather than sharing an ambiguous
+ * quantity field.
  */
-export type QuantitySheetTarget = { kind: 'food'; food: Food };
+export type QuantitySheetTarget = { kind: 'food'; food: Food } | { kind: 'recipe'; recipe: Recipe };
+
+/**
+ * The unit the entry is written with. `'portion'` is the single case where `DiaryEntry.quantity`
+ * is NOT expressed in a food's reference unit (KCAL-180) -- every other entry is, which is what
+ * lets RM02 stay unit-unaware.
+ */
+export const PORTION_UNIT = 'portion';
 
 const ZERO_NUTRITION: NutritionValues = { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
@@ -44,10 +56,12 @@ export function medianPortionIndex(count: number): number {
  * `findById`, the sheet would render with no quick-portion buttons at all -- silently, with no
  * error and no failing test, since an empty portions array is a perfectly valid Food.
  */
-function useFoodWithPortions(initialFood: Food): Food {
+function useFoodWithPortions(initialFood: Food | null): Food | null {
   const [loaded, setLoaded] = useState<Food | null>(null);
 
   useEffect(() => {
+    if (!initialFood) return;
+
     let cancelled = false;
     foodRepository.findById(initialFood.id).then((result) => {
       if (!cancelled && result.ok) setLoaded(result.value);
@@ -58,9 +72,44 @@ function useFoodWithPortions(initialFood: Food): Food {
     };
   }, [initialFood]);
 
+  if (!initialFood) return null;
   // Derived rather than reset inside the effect: the id check is what keeps a record loaded
   // for a previously opened food from leaking into this one, without a setState-in-effect.
   return loaded?.id === initialFood.id ? loaded : initialFood;
+}
+
+/**
+ * Per-portion nutrition for a recipe (F09), from its real ingredient rows: RM03's
+ * `calculateRecipeTotals` then `calculatePortionNutrition`, both unchanged from Sprint 2.
+ *
+ * `undefined` until it resolves -- the sheet shows zeroes meanwhile rather than a wrong
+ * number, and KCAL-181 refuses to write an entry whose per-portion value never loaded.
+ */
+function useRecipePortionNutrition(recipe: Recipe | null): NutritionValues | undefined {
+  const [perPortion, setPerPortion] = useState<{ id: string; values: NutritionValues } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (!recipe) return;
+
+    let cancelled = false;
+    getRecipeWithIngredients(database, recipe.id).then((result) => {
+      if (cancelled || !result.ok) return;
+      const totals = calculateRecipeTotals(result.value.recipe, result.value.items);
+      setPerPortion({
+        id: recipe.id,
+        values: calculatePortionNutrition(totals, result.value.recipe.servings),
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [recipe]);
+
+  if (!recipe) return undefined;
+  return perPortion?.id === recipe.id ? perPortion.values : undefined;
 }
 
 /**
@@ -78,10 +127,17 @@ function useFoodWithPortions(initialFood: Food): Food {
  * documented on that function since Sprint 2).
  */
 export function useQuantitySheet(target: QuantitySheetTarget) {
-  const food = useFoodWithPortions(target.food);
-  const portions = useMemo(() => visiblePortions(food), [food]);
+  // Both branch hooks run unconditionally with a null argument on the arm that isn't active --
+  // a hook can't be called behind an `if`.
+  const food = useFoodWithPortions(target.kind === 'food' ? target.food : null);
+  const perPortion = useRecipePortionNutrition(target.kind === 'recipe' ? target.recipe : null);
 
-  const [quantityText, setQuantityText] = useState(numberToText(food.referenceQuantity));
+  const portions = useMemo(() => (food ? visiblePortions(food) : []), [food]);
+
+  // A recipe entry starts at one portion; a food entry at its own reference quantity.
+  const [quantityText, setQuantityText] = useState(
+    numberToText(target.kind === 'food' ? target.food.referenceQuantity : 1),
+  );
   const [selectedPortionId, setSelectedPortionId] = useState<string | undefined>(undefined);
 
   // The portions arrive after the first render (see useFoodWithPortions), so the median
@@ -92,7 +148,7 @@ export function useQuantitySheet(target: QuantitySheetTarget) {
 
   useEffect(() => {
     preselectApplied.current = false;
-  }, [target.food.id]);
+  }, [target]);
 
   useEffect(() => {
     if (preselectApplied.current || portions.length === 0) return;
@@ -119,17 +175,26 @@ export function useQuantitySheet(target: QuantitySheetTarget) {
   const quantity =
     parsedQuantity === undefined || Number.isNaN(parsedQuantity) ? undefined : parsedQuantity;
 
-  // RM02 lives in domain/calculations; the sheet only displays what it returns
-  // (interactions.md: "l'affichage ne recalcule rien lui-même"). Recomputed on every
-  // keystroke, which is cheap -- four multiplications on already-loaded data.
-  const nutrition = useMemo<NutritionValues>(
-    () =>
-      quantity === undefined ? ZERO_NUTRITION : calculateProportionalNutrition(food, quantity),
-    [food, quantity],
-  );
+  /**
+   * The two arms use different domain functions, and that difference is the point:
+   * - a food scales its per-reference-unit values by the quantity (RM02);
+   * - a recipe multiplies its already-per-portion values by a portion count (KCAL-171),
+   *   which is why it never touches RM02.
+   *
+   * Either way the sheet only displays what domain/calculations returns and computes nothing
+   * itself (interactions.md). Recomputed on every keystroke, which is cheap -- four
+   * multiplications on already-loaded data.
+   */
+  const nutrition = useMemo<NutritionValues>(() => {
+    if (quantity === undefined) return ZERO_NUTRITION;
+    if (food) return calculateProportionalNutrition(food, quantity);
+    if (perPortion) return multiplyNutrition(perPortion, quantity);
+    return ZERO_NUTRITION;
+  }, [food, perPortion, quantity]);
 
   return {
     food,
+    perPortion,
     portions,
     selectedPortionId,
     selectPortion,

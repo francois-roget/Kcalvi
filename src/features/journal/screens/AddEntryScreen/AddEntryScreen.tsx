@@ -41,7 +41,7 @@ export function AddEntryScreen({ route, navigation }: JournalAddEntryScreenProps
   const recipeCalories = useRecipeCalories(filteredRecipes);
   const results = useEntryResults(filteredFoods, filteredRecipes, recipeCalories);
 
-  // `null` = sheet closed. Recipe results don't open it yet -- the recipe mode is KCAL-180.
+  // `null` = sheet closed.
   const [sheetTarget, setSheetTarget] = useState<QuantitySheetTarget | null>(null);
 
   const trimmedQuery = debouncedQuery.trim();
@@ -73,9 +73,13 @@ export function AddEntryScreen({ route, navigation }: JournalAddEntryScreenProps
         ) : (
           <EntryResultList
             results={results}
-            onSelect={(result) => {
-              if (result.kind === 'food') setSheetTarget({ kind: 'food', food: result.food });
-            }}
+            onSelect={(result) =>
+              setSheetTarget(
+                result.kind === 'food'
+                  ? { kind: 'food', food: result.food }
+                  : { kind: 'recipe', recipe: result.recipe },
+              )
+            }
           />
         )}
       </Content>

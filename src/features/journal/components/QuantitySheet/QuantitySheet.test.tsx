@@ -1,9 +1,9 @@
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { ThemeProvider } from 'styled-components/native';
 
 import '@/i18n';
 
-import type { Food } from '@/domain/types';
+import type { Food, Recipe } from '@/domain/types';
 import { ok } from '@/domain/types/result';
 import { theme } from '@/ui/theme';
 
@@ -49,6 +49,11 @@ jest.mock('@/data/repositories', () => ({
   foodRepository: { findById: (...args: unknown[]) => mockFindById(...args) },
 }));
 
+const mockGetRecipeWithIngredients = jest.fn();
+jest.mock('@/data/repositories/getRecipeWithIngredients', () => ({
+  getRecipeWithIngredients: (...args: unknown[]) => mockGetRecipeWithIngredients(...args),
+}));
+
 const YAOURT: Food = {
   id: 'food-1',
   name: 'Yaourt nature',
@@ -72,6 +77,16 @@ const PORTIONS = [
   { id: 'p-mid', foodId: YAOURT.id, label: '1 pot', quantity: 150, unit: 'g', position: 1 },
 ];
 
+const SOUPE: Recipe = {
+  id: 'recipe-1',
+  name: 'Soupe de potiron',
+  servings: 4,
+  isFavorite: false,
+  isArchived: false,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
 function renderSheet(food: Food) {
   return render(
     <ThemeProvider theme={theme}>
@@ -80,8 +95,17 @@ function renderSheet(food: Food) {
   );
 }
 
+function renderRecipeSheet(recipe: Recipe) {
+  return render(
+    <ThemeProvider theme={theme}>
+      <QuantitySheet visible target={{ kind: 'recipe', recipe }} onClose={jest.fn()} />
+    </ThemeProvider>,
+  );
+}
+
 beforeEach(() => {
   mockFindById.mockReset();
+  mockGetRecipeWithIngredients.mockReset();
 });
 
 describe('QuantitySheet quick portions (KCAL-179)', () => {
@@ -133,5 +157,56 @@ describe('QuantitySheet quick portions (KCAL-179)', () => {
     );
 
     expect(screen.queryByTestId('quantitySheet.portions')).toBeNull();
+  });
+});
+
+describe('QuantitySheet recipe mode (KCAL-180)', () => {
+  // 400 kcal of ingredients over 4 servings = 100 kcal per portion.
+  const RICE: Food = { ...YAOURT, id: 'food-rice', name: 'Riz', calories: 400 };
+
+  it('counts portions and scales the per-portion value, never RM02', async () => {
+    mockGetRecipeWithIngredients.mockResolvedValue(
+      ok({
+        recipe: SOUPE,
+        items: [
+          {
+            ingredient: {
+              id: 'ri-1',
+              recipeId: SOUPE.id,
+              foodId: RICE.id,
+              quantity: 100,
+              unit: 'g',
+            },
+            food: RICE,
+          },
+        ],
+      }),
+    );
+
+    renderRecipeSheet(SOUPE);
+
+    // Starts at one portion, so the readout equals the per-portion value itself.
+    await waitFor(() =>
+      expect(screen.getByTestId('quantitySheet.kcal')).toHaveTextContent('100 kcal'),
+    );
+    expect(screen.getByTestId('quantitySheet.quantityField').props.value).toBe('1');
+
+    // Two portions doubles it. A food would have run this through
+    // calculateProportionalNutrition against a reference quantity; a recipe multiplies its
+    // already-per-portion values instead (multiplyNutrition), which is the whole distinction.
+    fireEvent.changeText(screen.getByTestId('quantitySheet.quantityField'), '2');
+    await waitFor(() =>
+      expect(screen.getByTestId('quantitySheet.kcal')).toHaveTextContent('200 kcal'),
+    );
+  });
+
+  it('shows no quick portions for a recipe: it is already counted in portions', async () => {
+    mockGetRecipeWithIngredients.mockResolvedValue(ok({ recipe: SOUPE, items: [] }));
+
+    renderRecipeSheet(SOUPE);
+
+    await waitFor(() => expect(mockGetRecipeWithIngredients).toHaveBeenCalled());
+    expect(screen.queryByTestId('quantitySheet.portions')).toBeNull();
+    expect(mockFindById).not.toHaveBeenCalled();
   });
 });

@@ -80,6 +80,8 @@
   },
   "quantitySheet": {
     "quantityLabel": "Quantité",
+    "servingsLabel": "Nombre de portions",
+    "portionUnit": "portions",
     "protein": "P {{value}}",
     "carbs": "G {{value}}",
     "fat": "L {{value}}"
