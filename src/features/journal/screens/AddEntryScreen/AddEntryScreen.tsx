@@ -14,6 +14,7 @@ import {
   type EntryFilterKey,
 } from './AddEntryScreen.helpers';
 import { Content, Safe } from './AddEntryScreen.styles';
+import { EntryEmptyState } from './EntryEmptyState';
 import { EntryFilterBar } from './EntryFilterBar';
 import { EntryResultList } from './EntryResultList';
 
@@ -36,14 +37,19 @@ export function AddEntryScreen({ route, navigation }: JournalAddEntryScreenProps
   const recipeCalories = useRecipeCalories(filteredRecipes);
   const results = useEntryResults(filteredFoods, filteredRecipes, recipeCalories);
 
+  const trimmedQuery = debouncedQuery.trim();
+  const openFoodForm = (initialName?: string) =>
+    navigateToFoodForm(
+      navigation.getParent<BottomTabNavigationProp<RootTabParamList>>(),
+      initialName,
+    );
+
   return (
     <Safe edges={['top', 'bottom']}>
       <AddEntryHeader
         mealType={mealType}
         onCancel={() => navigation.goBack()}
-        onCreate={() =>
-          navigateToFoodForm(navigation.getParent<BottomTabNavigationProp<RootTabParamList>>())
-        }
+        onCreate={() => openFoodForm()}
       />
 
       <Content>
@@ -55,9 +61,12 @@ export function AddEntryScreen({ route, navigation }: JournalAddEntryScreenProps
           onSelectFilter={setSelectedFilter}
         />
 
-        {/* Opening the QuantitySheet on a result is KCAL-177 onwards; the empty state is
-            KCAL-176. */}
-        <EntryResultList results={results} onSelect={() => {}} />
+        {/* Opening the QuantitySheet on a result is KCAL-177 onwards. */}
+        {results.length === 0 ? (
+          <EntryEmptyState query={trimmedQuery} onCreatePress={() => openFoodForm(trimmedQuery)} />
+        ) : (
+          <EntryResultList results={results} onSelect={() => {}} />
+        )}
       </Content>
     </Safe>
   );

@@ -88,6 +88,11 @@
     "result": {
       "addLabel": "Ajouter {{name}}"
     },
+    "empty": {
+      "noResults": "Aucun résultat",
+      "noResultsForQuery": "Aucun résultat pour « {{query}} »",
+      "createFood": "Créer cet aliment"
+    },
     "header": {
       "cancel": "Annuler",
       "create": "Créer",

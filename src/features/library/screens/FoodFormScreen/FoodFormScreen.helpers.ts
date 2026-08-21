@@ -138,6 +138,10 @@ export function useFoodForm(
   const { t } = useTranslation();
   const foodId = route.params?.foodId;
   const isEditMode = foodId !== undefined;
+  // KCAL-176: create mode reached from AddEntryScreen's empty state, carrying the search term
+  // that matched nothing. Only seeds the initial render -- the edit-mode `reset()` below
+  // overwrites the whole form when a foodId is present, so the two never fight.
+  const initialName = route.params?.initialName;
 
   const [loading, setLoading] = useState(isEditMode);
   const [loadError, setLoadError] = useState(false);
@@ -159,7 +163,9 @@ export function useFoodForm(
     reset,
     setError,
     formState: { errors },
-  } = useForm<FoodFormValues>({ defaultValues: DEFAULT_VALUES });
+  } = useForm<FoodFormValues>({
+    defaultValues: initialName ? { ...DEFAULT_VALUES, name: initialName } : DEFAULT_VALUES,
+  });
 
   useEffect(() => {
     if (!isEditMode || !foodId) return;

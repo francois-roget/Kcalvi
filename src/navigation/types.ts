@@ -53,8 +53,15 @@ export type JournalStackParamList = {
 
 export type LibraryStackParamList = {
   Library: undefined;
-  /** `undefined` params = create mode, `{ foodId }` = edit mode (KCAL-118). */
-  FoodForm: { foodId: string } | undefined;
+  /**
+   * `undefined` params = create mode, `{ foodId }` = edit mode (KCAL-118).
+   *
+   * KCAL-176: `initialName` prefills the name field when AddEntryScreen's "Créer cet aliment"
+   * hands off a search term that matched nothing. Deliberately an optional field on the
+   * existing params rather than a third mode -- the form stays in create mode, it just starts
+   * with one field filled.
+   */
+  FoodForm: { foodId?: string; initialName?: string } | undefined;
   /**
    * `undefined` params = create mode, `{ recipeId }` = edit mode OR "opened after
    * duplicating" (KCAL-141 clones via `recipeRepository.create` then navigates here

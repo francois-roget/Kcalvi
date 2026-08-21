@@ -110,8 +110,14 @@ export function useEntryResults(
  */
 export function navigateToFoodForm(
   parent: BottomTabNavigationProp<RootTabParamList> | undefined,
+  // KCAL-176: prefills the new food's name from the search term that matched nothing. Omitted
+  // (or empty) for the header's plain « Créer », which opens a blank form.
+  initialName?: string,
 ): void {
-  parent?.navigate('LibraryTab', { screen: 'FoodForm' });
+  parent?.navigate('LibraryTab', {
+    screen: 'FoodForm',
+    params: initialName ? { initialName } : undefined,
+  });
 }
 
 // Turning `route.params.date` (a yyyy-MM-dd day key, KCAL-172) back into a Date belongs with
