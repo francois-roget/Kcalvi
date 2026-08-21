@@ -94,7 +94,15 @@ export type DiaryEntry = {
   protein: number;
   carbs: number;
   fat: number;
+  // Frozen at write time, independent of the linked Food/Recipe being later
+  // renamed, edited, or deleted (RM16).
+  label: string;
+  // Which food_portions row this entry was entered via, if any. May be a
+  // dangling reference if that portion was later deleted -- resolve
+  // defensively, never assume it still exists.
+  portionId?: string;
   createdAt: Date;
+  updatedAt: Date;
 };
 
 export type ActivityEntry = {
