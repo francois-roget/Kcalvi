@@ -39,12 +39,13 @@ export function IngredientsSection({
         </Text>
       ) : (
         <ListCard>
-          {ingredients.map((draft) => (
+          {ingredients.map((draft, index) => (
             <IngredientRow
               key={draft.tempId}
               draft={draft}
               kcal={calculateProportionalNutrition(draft.food, draft.referenceQuantity).calories}
               onDelete={() => onRemoveIngredient(draft.tempId)}
+              isLast={index === ingredients.length - 1}
             />
           ))}
         </ListCard>
