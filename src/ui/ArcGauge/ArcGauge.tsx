@@ -3,6 +3,7 @@ import Animated, { Easing, useAnimatedProps, withTiming } from 'react-native-rea
 import Svg, { Path } from 'react-native-svg';
 import { useTheme } from 'styled-components/native';
 
+import { isOverGoal } from '@/domain/calculations';
 import Text from '@/ui/Text';
 import type { Theme } from '@/ui/theme';
 
@@ -25,7 +26,7 @@ export type ArcGaugeProps = {
 function ArcGauge({ value, goal, subtitle, width = VIEWBOX_WIDTH }: ArcGaugeProps) {
   const theme = useTheme() as Theme;
   const progress = goal > 0 ? Math.min(Math.max(value / goal, 0), 1) : 0;
-  const overGoal = value > goal;
+  const overGoal = isOverGoal(value, goal);
   const height = (width / VIEWBOX_WIDTH) * VIEWBOX_HEIGHT;
 
   const animatedProps = useAnimatedProps(() => ({

@@ -138,6 +138,18 @@ export function calculateRemainingCalories(goal: number, net: number): number {
   return goal - net;
 }
 
+/**
+ * The feedback threshold of interactions.md: "dès que consommé net > objectif", the gauge, the
+ * day total and the journal's status pill all switch to terracotta.
+ *
+ * A one-line predicate, but a shared one (KCAL-188): the same comparison was about to live in
+ * ArcGauge and in JournalScreen's pill, and two copies of a threshold drift the moment one of
+ * them becomes `>=`.
+ */
+export function isOverGoal(net: number, goal: number): boolean {
+  return net > goal;
+}
+
 /** RM09 */
 export function calculateWeeklyBudget(dailyGoal: number): number {
   return dailyGoal * 7;

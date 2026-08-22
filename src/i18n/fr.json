@@ -366,6 +366,13 @@
     }
   },
   "journal": {
-    "title": "Journal"
+    "title": "Journal",
+    "hero": {
+      "goal": "sur {{goal}} kcal"
+    },
+    "status": {
+      "inTarget": "Dans la cible",
+      "over": "Au-dessus"
+    }
   }
 }
