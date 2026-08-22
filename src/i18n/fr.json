@@ -382,6 +382,12 @@
       "title": "Activité",
       "comingSoon": "Le suivi d'activité arrive dans une prochaine version."
     },
-    "footnote": "Les valeurs enregistrées ne changent pas si tu modifies un aliment plus tard."
+    "footnote": "Les valeurs enregistrées ne changent pas si tu modifies un aliment plus tard.",
+    "entryActions": {
+      "editQuantity": "Modifier la quantité",
+      "changeMeal": "Changer de repas",
+      "delete": "Supprimer",
+      "cancel": "Annuler"
+    }
   }
 }

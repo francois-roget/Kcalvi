@@ -13,6 +13,7 @@ import type { JournalScreenProps } from '@/navigation/types';
 import Text from '@/ui/Text';
 import { formatKcal, formatMonthYear, toDayKey } from '@/utils/format';
 
+import { EntryActionsSheet } from './EntryActionsSheet';
 import { JournalHeroCard } from './JournalHeroCard';
 import { useWeekDays } from './JournalScreen.helpers';
 import { Container, Content, Header, HeaderRow, Safe, styles } from './JournalScreen.styles';
@@ -42,6 +43,20 @@ export function JournalScreen({ navigation }: JournalScreenProps) {
   const consumed = useMemo(() => calculateConsumedNutrition(entries), [entries]);
   // One subscription per day, split in memory (KCAL-185's rule, shared hook since KCAL-189).
   const entriesByMeal = useEntriesByMeal(entries);
+
+  // `null` closes the actions sheet (KCAL-191).
+  const [entryUnderAction, setEntryUnderAction] = useState<DiaryEntry | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  function openEntryActions(entry: DiaryEntry) {
+    setActionError(null);
+    setEntryUnderAction(entry);
+  }
+
+  function closeEntryActions() {
+    setEntryUnderAction(null);
+    setActionError(null);
+  }
 
   function openAddEntry(mealType: MealType) {
     navigation.navigate('AddEntry', { mealType, date: toDayKey(selectedDay) });
@@ -78,7 +93,7 @@ export function JournalScreen({ navigation }: JournalScreenProps) {
               mealType={mealType}
               entries={entriesByMeal[mealType]}
               onAddPress={() => openAddEntry(mealType)}
-              onEntryPress={() => {}}
+              onEntryPress={openEntryActions}
             />
           ))}
 
@@ -105,6 +120,17 @@ export function JournalScreen({ navigation }: JournalScreenProps) {
           </Text>
         </Content>
       </ScrollView>
+
+      {/* The three actions land in KCAL-192 (quantity), KCAL-193 (meal) and KCAL-194
+          (delete); the sheet and its failure surface are in place from here. */}
+      <EntryActionsSheet
+        entry={entryUnderAction}
+        errorMessage={actionError}
+        onClose={closeEntryActions}
+        onEditQuantity={() => {}}
+        onChangeMeal={() => {}}
+        onDelete={() => {}}
+      />
     </Safe>
   );
 }
