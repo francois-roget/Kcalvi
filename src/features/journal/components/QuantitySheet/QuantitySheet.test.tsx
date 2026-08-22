@@ -360,3 +360,64 @@ describe('QuantitySheet write path (KCAL-181)', () => {
     );
   });
 });
+
+describe('QuantitySheet portion / manual parity and RM16 (KCAL-197)', () => {
+  it('a portion button and typing its equivalent are the same input', async () => {
+    mockFindById.mockResolvedValue(ok({ ...YAOURT, portions: PORTIONS }));
+
+    renderSheet(YAOURT);
+    await waitFor(() => expect(screen.getByTestId('quantitySheet.portions')).toBeTruthy());
+
+    // Tapping the largest portion must fill the field with its reference-unit equivalent
+    // (250 g), not a portion count of 1. A silently skipped conversion -- the KCAL-149/164
+    // class of bug -- shows up right here as '1'.
+    fireEvent.press(screen.getByTestId('quantitySheet.portion.p-large'));
+    await waitFor(() =>
+      expect(screen.getByTestId('quantitySheet.quantityField').props.value).toBe('250'),
+    );
+    const kcalViaPortion = screen.getByTestId('quantitySheet.kcal').props.children;
+
+    // Typing the same number by hand must land on the same reading...
+    fireEvent.changeText(screen.getByTestId('quantitySheet.quantityField'), '150');
+    await waitFor(() =>
+      expect(screen.getByTestId('quantitySheet.kcal')).toHaveTextContent('90 kcal'),
+    );
+    fireEvent.changeText(screen.getByTestId('quantitySheet.quantityField'), '250');
+    await waitFor(() =>
+      expect(screen.getByTestId('quantitySheet.quantityField').props.value).toBe('250'),
+    );
+    expect(screen.getByTestId('quantitySheet.kcal').props.children).toEqual(kcalViaPortion);
+
+    // ...with the one intended difference: typing detaches the entry from the portion, so the
+    // written source carries no portionId (KCAL-163d records how it was entered).
+    fireEvent.press(screen.getByTestId('quantitySheet.submit'));
+    await waitFor(() => expect(mockCreateEntry).toHaveBeenCalledTimes(1));
+    expect(mockCreateEntry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        quantity: 250,
+        source: { kind: 'food', foodId: YAOURT.id, portionId: undefined },
+      }),
+    );
+  });
+
+  it('recomputes from the food as it stands now, and copies the result onto the entry (RM16)', async () => {
+    // The food's calories have doubled since any earlier entry was written.
+    mockFindById.mockResolvedValue(ok({ ...YAOURT, calories: 120, portions: [] }));
+
+    renderSheet(YAOURT);
+    await waitFor(() =>
+      expect(screen.getByTestId('quantitySheet.kcal')).toHaveTextContent('120 kcal'),
+    );
+
+    fireEvent.press(screen.getByTestId('quantitySheet.submit'));
+    await waitFor(() => expect(mockCreateEntry).toHaveBeenCalledTimes(1));
+
+    // The new entry carries the *current* values, copied onto it. RM16's protection is that the
+    // entry stores its own numbers rather than pointing at the food -- so editing the food
+    // afterwards cannot reach back into it, which is what LocalDiaryEntryRepository.dbtest
+    // asserts from the storage side.
+    expect(mockCreateEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ calories: 120, label: 'Yaourt nature' }),
+    );
+  });
+});
