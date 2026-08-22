@@ -13,13 +13,17 @@ export type EntryActionsSheetProps = {
   entry: DiaryEntry | null;
   /** Set when the last action returned a failed `Result`: the sheet stays open and shows it. */
   errorMessage: string | null;
-  /** `'actions'` shows the three actions, `'meal'` the meal picker (KCAL-193). */
-  step: 'actions' | 'meal';
+  /**
+   * `'actions'` shows the three actions, `'meal'` the meal picker (KCAL-193), `'confirmDelete'`
+   * the deletion confirmation (KCAL-194).
+   */
+  step: 'actions' | 'meal' | 'confirmDelete';
   onClose: () => void;
   onEditQuantity: () => void;
   onChangeMeal: () => void;
   onSelectMeal: (mealType: MealType) => void;
   onDelete: () => void;
+  onConfirmDelete: () => void;
 };
 
 /**
@@ -42,6 +46,7 @@ export function EntryActionsSheet({
   onChangeMeal,
   onSelectMeal,
   onDelete,
+  onConfirmDelete,
 }: EntryActionsSheetProps) {
   const { t } = useTranslation();
 
@@ -65,7 +70,22 @@ export function EntryActionsSheet({
             </Text>
           ) : null}
 
-          {step === 'meal' ? (
+          {step === 'confirmDelete' ? (
+            // Deleting a diary entry is irreversible and unlike RM15 has nothing to check
+            // against, so the confirmation is the only guard -- hence a separate step rather
+            // than a delete that fires on first tap.
+            <>
+              <Text variant="bodySm" color="text.secondary" style={styles.subtitle}>
+                {t('journal.entryActions.deleteConfirmMessage')}
+              </Text>
+              <Button
+                testID="journal.entryActions.confirmDelete"
+                label={t('journal.entryActions.delete')}
+                variant="primary"
+                onPress={onConfirmDelete}
+              />
+            </>
+          ) : step === 'meal' ? (
             // Iterates MEAL_TYPES so the choice list keeps F10's order (KCAL-170). The entry's
             // current meal is marked but still tappable -- picking it is a no-op, not an error.
             MEAL_TYPES.map((mealType) => (

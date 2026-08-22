@@ -50,7 +50,7 @@ export function JournalScreen({ navigation }: JournalScreenProps) {
   // `null` closes the actions sheet (KCAL-191).
   const [entryUnderAction, setEntryUnderAction] = useState<DiaryEntry | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [actionStep, setActionStep] = useState<'actions' | 'meal'>('actions');
+  const [actionStep, setActionStep] = useState<'actions' | 'meal' | 'confirmDelete'>('actions');
 
   // The entry whose quantity is being edited (F14 / KCAL-192); its Food/Recipe resolves async.
   const [entryUnderEdit, setEntryUnderEdit] = useState<DiaryEntry | null>(null);
@@ -66,6 +66,27 @@ export function JournalScreen({ navigation }: JournalScreenProps) {
     setEntryUnderAction(null);
     setActionError(null);
     setActionStep('actions');
+  }
+
+  /**
+   * F14 / KCAL-194 — removes the entry.
+   *
+   * `delete` returns a `Result`, and a failed one produces a visible message instead of a
+   * silent close: KCAL-153 was exactly this bug, a deletion that failed quietly and left the
+   * user believing it had happened.
+   */
+  async function deleteEntry() {
+    if (!entryUnderAction) return;
+
+    const label = entryUnderAction.label;
+    const result = await diaryEntryRepository.delete(entryUnderAction.id);
+    if (!result.ok) {
+      setActionError(t('journal.entryActions.errors.delete'));
+      return;
+    }
+
+    closeEntryActions();
+    showToast(t('journal.entryActions.deletedToast', { name: label }));
   }
 
   /**
@@ -167,7 +188,11 @@ export function JournalScreen({ navigation }: JournalScreenProps) {
           setActionStep('meal');
         }}
         onSelectMeal={changeMeal}
-        onDelete={() => {}}
+        onDelete={() => {
+          setActionError(null);
+          setActionStep('confirmDelete');
+        }}
+        onConfirmDelete={deleteEntry}
       />
 
       {/* Only renders once the source record resolves: an entry outlives the food it was

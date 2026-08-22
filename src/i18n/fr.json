@@ -392,8 +392,11 @@
       "cancel": "Annuler",
       "movedToast": "Entrée déplacée vers {{meal}}",
       "errors": {
-        "changeMeal": "Le changement de repas a échoué. Réessaie."
-      }
+        "changeMeal": "Le changement de repas a échoué. Réessaie.",
+        "delete": "La suppression a échoué. Réessaie."
+      },
+      "deleteConfirmMessage": "Cette entrée sera retirée de ta journée. Cette action est irréversible.",
+      "deletedToast": "{{name}} retiré"
     }
   }
 }
