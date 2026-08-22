@@ -364,5 +364,8 @@
       "cancel": "Annuler",
       "archiveError": "L'archivage a échoué. Réessaie."
     }
+  },
+  "journal": {
+    "title": "Journal"
   }
 }

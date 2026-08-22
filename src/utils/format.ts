@@ -127,3 +127,19 @@ export function toDayKey(date: Date): string {
 export function parseDayKey(dayKey: string): Date {
   return parseISO(dayKey);
 }
+
+/** Capitalized French month + year for a screen title, e.g. « Août 2026 » (KCAL-187). */
+export function formatMonthYear(date: Date): string {
+  const formatted = dateFnsFormat(date, 'MMMM yyyy', { locale: fr });
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+}
+
+/** Single-letter French weekday for the DayStrip, e.g. « L » for Monday. */
+export function formatWeekdayNarrow(date: Date): string {
+  return dateFnsFormat(date, 'EEEEE', { locale: fr }).toUpperCase();
+}
+
+/** Day of the month as a plain number string for the DayStrip. */
+export function formatDayOfMonth(date: Date): string {
+  return dateFnsFormat(date, 'd', { locale: fr });
+}
