@@ -21,4 +21,15 @@ export const Content = styled.View`
 export const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1, paddingBottom: 26 },
   month: { marginTop: 2 },
+  footnote: { marginTop: 4 },
 });
+
+export const Container = styled.View`
+  gap: ${({ theme }) => theme.spacing[2]}px;
+`;
+
+export const HeaderRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+`;

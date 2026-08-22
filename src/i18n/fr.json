@@ -377,6 +377,11 @@
     "meal": {
       "empty": "Rien pour l'instant",
       "add": "+ Ajouter"
-    }
+    },
+    "activity": {
+      "title": "Activité",
+      "comingSoon": "Le suivi d'activité arrive dans une prochaine version."
+    },
+    "footnote": "Les valeurs enregistrées ne changent pas si tu modifies un aliment plus tard."
   }
 }

@@ -11,11 +11,11 @@ import { useEntriesByMeal } from '@/hooks/useEntriesByMeal';
 import { useObservable } from '@/hooks/useObservable';
 import type { JournalScreenProps } from '@/navigation/types';
 import Text from '@/ui/Text';
-import { formatMonthYear, toDayKey } from '@/utils/format';
+import { formatKcal, formatMonthYear, toDayKey } from '@/utils/format';
 
 import { JournalHeroCard } from './JournalHeroCard';
 import { useWeekDays } from './JournalScreen.helpers';
-import { Content, Header, Safe, styles } from './JournalScreen.styles';
+import { Container, Content, Header, HeaderRow, Safe, styles } from './JournalScreen.styles';
 
 const EMPTY_ENTRIES: DiaryEntry[] = [];
 
@@ -81,6 +81,28 @@ export function JournalScreen({ navigation }: JournalScreenProps) {
               onEntryPress={() => {}}
             />
           ))}
+
+          {/* KCAL-190 — Activité is a placeholder: there is no ActivityRepository until
+              Sprint 5, so the total is a literal 0 and the section is not interactive (2m
+              doesn't exist either). Rendered rather than hidden so the screen's real shape is
+              in place, with the footnote saying why it stays at zero. */}
+          <Container testID="journal.activity">
+            <HeaderRow>
+              <Text variant="overline" color="text.tertiary">
+                {t('journal.activity.title')}
+              </Text>
+              <Text variant="caption" color="text.disabled">
+                {formatKcal(0)}
+              </Text>
+            </HeaderRow>
+            <Text variant="caption" color="text.disabled">
+              {t('journal.activity.comingSoon')}
+            </Text>
+          </Container>
+
+          <Text variant="micro" color="text.quaternary" style={styles.footnote}>
+            {t('journal.footnote')}
+          </Text>
         </Content>
       </ScrollView>
     </Safe>
