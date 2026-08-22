@@ -113,11 +113,6 @@ const route = { key: 'Journal-1', name: 'Journal' as const, params: undefined };
 function renderScreen() {
   return render(
     // The screen confirms its F14 actions with a toast, so it needs the real provider.
-    //
-    // Running this file alone prints Jest's "did not exit one second after" notice: the
-    // provider's 2.2s auto-dismiss timeout isn't cleared on unmount. Harmless in the app (the
-    // provider sits at the root and never unmounts) and harmless in the full run, but worth
-    // knowing before chasing it as a leak in this test.
     <ThemeProvider theme={theme}>
       <ToastProvider>
         <JournalScreen
