@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import type { DiaryEntry } from '@/domain/types';
+import { MEAL_TYPES, type DiaryEntry, type MealType } from '@/domain/types';
 import BottomSheet from '@/ui/BottomSheet';
 import Button from '@/ui/Button';
 import Text from '@/ui/Text';
@@ -13,9 +13,12 @@ export type EntryActionsSheetProps = {
   entry: DiaryEntry | null;
   /** Set when the last action returned a failed `Result`: the sheet stays open and shows it. */
   errorMessage: string | null;
+  /** `'actions'` shows the three actions, `'meal'` the meal picker (KCAL-193). */
+  step: 'actions' | 'meal';
   onClose: () => void;
   onEditQuantity: () => void;
   onChangeMeal: () => void;
+  onSelectMeal: (mealType: MealType) => void;
   onDelete: () => void;
 };
 
@@ -33,9 +36,11 @@ export type EntryActionsSheetProps = {
 export function EntryActionsSheet({
   entry,
   errorMessage,
+  step,
   onClose,
   onEditQuantity,
   onChangeMeal,
+  onSelectMeal,
   onDelete,
 }: EntryActionsSheetProps) {
   const { t } = useTranslation();
@@ -60,24 +65,40 @@ export function EntryActionsSheet({
             </Text>
           ) : null}
 
-          <Button
-            testID="journal.entryActions.editQuantity"
-            label={t('journal.entryActions.editQuantity')}
-            variant="secondary"
-            onPress={onEditQuantity}
-          />
-          <Button
-            testID="journal.entryActions.changeMeal"
-            label={t('journal.entryActions.changeMeal')}
-            variant="secondary"
-            onPress={onChangeMeal}
-          />
-          <Button
-            testID="journal.entryActions.delete"
-            label={t('journal.entryActions.delete')}
-            variant="secondary"
-            onPress={onDelete}
-          />
+          {step === 'meal' ? (
+            // Iterates MEAL_TYPES so the choice list keeps F10's order (KCAL-170). The entry's
+            // current meal is marked but still tappable -- picking it is a no-op, not an error.
+            MEAL_TYPES.map((mealType) => (
+              <Button
+                key={mealType}
+                testID={`journal.entryActions.meal.${mealType}`}
+                label={t(`meals.${mealType}`)}
+                variant={mealType === entry.mealType ? 'primary' : 'secondary'}
+                onPress={() => onSelectMeal(mealType)}
+              />
+            ))
+          ) : (
+            <>
+              <Button
+                testID="journal.entryActions.editQuantity"
+                label={t('journal.entryActions.editQuantity')}
+                variant="secondary"
+                onPress={onEditQuantity}
+              />
+              <Button
+                testID="journal.entryActions.changeMeal"
+                label={t('journal.entryActions.changeMeal')}
+                variant="secondary"
+                onPress={onChangeMeal}
+              />
+              <Button
+                testID="journal.entryActions.delete"
+                label={t('journal.entryActions.delete')}
+                variant="secondary"
+                onPress={onDelete}
+              />
+            </>
+          )}
           <Button
             testID="journal.entryActions.cancel"
             label={t('journal.entryActions.cancel')}

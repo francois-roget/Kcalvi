@@ -389,7 +389,11 @@
       "editQuantity": "Modifier la quantité",
       "changeMeal": "Changer de repas",
       "delete": "Supprimer",
-      "cancel": "Annuler"
+      "cancel": "Annuler",
+      "movedToast": "Entrée déplacée vers {{meal}}",
+      "errors": {
+        "changeMeal": "Le changement de repas a échoué. Réessaie."
+      }
     }
   }
 }

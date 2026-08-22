@@ -50,6 +50,7 @@ export function JournalScreen({ navigation }: JournalScreenProps) {
   // `null` closes the actions sheet (KCAL-191).
   const [entryUnderAction, setEntryUnderAction] = useState<DiaryEntry | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionStep, setActionStep] = useState<'actions' | 'meal'>('actions');
 
   // The entry whose quantity is being edited (F14 / KCAL-192); its Food/Recipe resolves async.
   const [entryUnderEdit, setEntryUnderEdit] = useState<DiaryEntry | null>(null);
@@ -57,12 +58,34 @@ export function JournalScreen({ navigation }: JournalScreenProps) {
 
   function openEntryActions(entry: DiaryEntry) {
     setActionError(null);
+    setActionStep('actions');
     setEntryUnderAction(entry);
   }
 
   function closeEntryActions() {
     setEntryUnderAction(null);
     setActionError(null);
+    setActionStep('actions');
+  }
+
+  /**
+   * F14 / KCAL-193 — moves the entry to another meal.
+   *
+   * Only `mealType` is written: the entry stays on its day, so `date` is deliberately absent
+   * from the patch rather than passed through unchanged, which would re-run KCAL-169's
+   * normalization for no reason.
+   */
+  async function changeMeal(mealType: MealType) {
+    if (!entryUnderAction) return;
+
+    const result = await diaryEntryRepository.update(entryUnderAction.id, { mealType });
+    if (!result.ok) {
+      setActionError(t('journal.entryActions.errors.changeMeal'));
+      return;
+    }
+
+    closeEntryActions();
+    showToast(t('journal.entryActions.movedToast', { meal: t(`meals.${mealType}`) }));
   }
 
   function openAddEntry(mealType: MealType) {
@@ -133,12 +156,17 @@ export function JournalScreen({ navigation }: JournalScreenProps) {
       <EntryActionsSheet
         entry={entryUnderAction}
         errorMessage={actionError}
+        step={actionStep}
         onClose={closeEntryActions}
         onEditQuantity={() => {
           setEntryUnderEdit(entryUnderAction);
           closeEntryActions();
         }}
-        onChangeMeal={() => {}}
+        onChangeMeal={() => {
+          setActionError(null);
+          setActionStep('meal');
+        }}
+        onSelectMeal={changeMeal}
         onDelete={() => {}}
       />
 
