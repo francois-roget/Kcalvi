@@ -75,9 +75,52 @@ export function calculatePortionNutrition(
   };
 }
 
-/** RM04 */
+/**
+ * Scales an already-per-unit set of nutrition values by a count -- the exact inverse of
+ * `calculatePortionNutrition`, and the function a recipe diary entry needs: per-portion
+ * values (F09) x number of portions consumed.
+ *
+ * Deliberately its own function rather than reusing `calculatePortionNutrition` with a
+ * computed `1 / factor` divisor. That trick reads as a division while performing a
+ * multiplication, which is precisely the implicit-conversion class of bug documented at
+ * length on `convertPortionToReferenceQuantity` in Sprint 2 -- and it would silently
+ * produce Infinity at factor 0 instead of the zeroes callers expect.
+ *
+ * Unit-agnostic, like every other function here: `values` must already be expressed per
+ * one of whatever `factor` counts.
+ */
+export function multiplyNutrition(values: NutritionValues, factor: number): NutritionValues {
+  return {
+    calories: values.calories * factor,
+    protein: values.protein * factor,
+    carbs: values.carbs * factor,
+    fat: values.fat * factor,
+  };
+}
+
+/**
+ * Totals a day's diary entries across all four values (KCAL-184).
+ *
+ * Every entry already carries its own copied nutrition values (RM16), so this is a plain sum
+ * with no per-entry recalculation. It exists because interactions.md forbids the UI from
+ * adding up kcal or macros itself, and nothing in the domain aggregated the three macros --
+ * only calories, via RM04.
+ */
+export function calculateConsumedNutrition(diaryEntries: DiaryEntry[]): NutritionValues {
+  return diaryEntries.reduce<NutritionValues>(
+    (totals, entry) => ({
+      calories: totals.calories + entry.calories,
+      protein: totals.protein + entry.protein,
+      carbs: totals.carbs + entry.carbs,
+      fat: totals.fat + entry.fat,
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0 },
+  );
+}
+
+/** RM04 — the calories of `calculateConsumedNutrition`, kept as its own named rule. */
 export function calculateConsumedCalories(diaryEntries: DiaryEntry[]): number {
-  return diaryEntries.reduce((total, entry) => total + entry.calories, 0);
+  return calculateConsumedNutrition(diaryEntries).calories;
 }
 
 /** RM05 */
@@ -93,6 +136,18 @@ export function calculateNetCalories(consumed: number, burned: number): number {
 /** RM07 */
 export function calculateRemainingCalories(goal: number, net: number): number {
   return goal - net;
+}
+
+/**
+ * The feedback threshold of interactions.md: "dès que consommé net > objectif", the gauge, the
+ * day total and the journal's status pill all switch to terracotta.
+ *
+ * A one-line predicate, but a shared one (KCAL-188): the same comparison was about to live in
+ * ArcGauge and in JournalScreen's pill, and two copies of a threshold drift the moment one of
+ * them becomes `>=`.
+ */
+export function isOverGoal(net: number, goal: number): boolean {
+  return net > goal;
 }
 
 /** RM09 */

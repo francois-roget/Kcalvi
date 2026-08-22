@@ -88,5 +88,24 @@ export const migrations = schemaMigrations({
         ),
       ],
     },
+    {
+      // KCAL-166: label freezes the displayed name independently of the linked
+      // Food/Recipe (RM16); portion_id mirrors recipe_ingredients (KCAL-163d);
+      // updated_at is required by F14 (edit quantity/meal, delete with undo).
+      // No backfill here, deliberately: diary_entries is empty on every device --
+      // no repository has ever written to this table yet (it lands in KCAL-168,
+      // this sprint). This is not an oversight; there is simply nothing to backfill.
+      toVersion: 6,
+      steps: [
+        addColumns({
+          table: 'diary_entries',
+          columns: [
+            { name: 'label', type: 'string' },
+            { name: 'portion_id', type: 'string', isOptional: true, isIndexed: true },
+            { name: 'updated_at', type: 'number' },
+          ],
+        }),
+      ],
+    },
   ],
 });

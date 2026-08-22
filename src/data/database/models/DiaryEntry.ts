@@ -21,7 +21,15 @@ export default class DiaryEntry extends Model {
   @field('protein') protein!: number;
   @field('carbs') carbs!: number;
   @field('fat') fat!: number;
+  // KCAL-166: display name frozen at write time, independent of the linked
+  // Food/Recipe being later renamed, edited, or deleted (RM16).
+  @field('label') label!: string;
+  // KCAL-166: same role as RecipeIngredient.portionId (KCAL-163d) -- which
+  // food_portions row this entry was entered via, if any. May dangle if that
+  // portion is later deleted; callers must fall back gracefully.
+  @field('portion_id') portionId?: string;
   @readonly @date('created_at') createdAt!: Date;
+  @readonly @date('updated_at') updatedAt!: Date;
 
   @relation('foods', 'food_id') food!: Relation<Food>;
   @relation('recipes', 'recipe_id') recipe!: Relation<Recipe>;

@@ -1,4 +1,13 @@
-export type MealType = 'BREAKFAST' | 'LUNCH' | 'SNACK' | 'DINNER';
+// Single source of truth for the meal type union: derived from the array (rather than
+// declared separately) so a value can be checked for membership via MEAL_TYPES.find/includes
+// without a second list to keep in sync -- used by mapping.ts (KCAL-168) to narrow the
+// WatermelonDB string column back to this union without an unchecked cast.
+//
+// Declaration order is F10's display order (petit-déjeuner, déjeuner, collation, dîner):
+// screens iterate this array directly to lay out their meal sections, so reordering it
+// reorders the UI. Each value is also the i18n key under `meals.*` in fr.json (KCAL-170).
+export const MEAL_TYPES = ['BREAKFAST', 'LUNCH', 'SNACK', 'DINNER'] as const;
+export type MealType = (typeof MEAL_TYPES)[number];
 
 export type Sex = 'male' | 'female';
 
@@ -94,7 +103,15 @@ export type DiaryEntry = {
   protein: number;
   carbs: number;
   fat: number;
+  // Frozen at write time, independent of the linked Food/Recipe being later
+  // renamed, edited, or deleted (RM16).
+  label: string;
+  // Which food_portions row this entry was entered via, if any. May be a
+  // dangling reference if that portion was later deleted -- resolve
+  // defensively, never assume it still exists.
+  portionId?: string;
   createdAt: Date;
+  updatedAt: Date;
 };
 
 export type ActivityEntry = {

@@ -70,7 +70,78 @@
     }
   },
   "today": {
-    "greeting": "Bonjour {{name}}"
+    "greeting": "Bonjour {{name}}",
+    "hero": {
+      "goal": "sur {{goal}} kcal",
+      "consumed": "Consommé",
+      "burned": "Brûlé",
+      "remaining": "Restant"
+    },
+    "macros": {
+      "protein": "Protéines",
+      "carbs": "Glucides",
+      "fat": "Lipides"
+    },
+    "meals": {
+      "title": "Repas",
+      "seeAll": "Tout voir",
+      "empty": "Rien pour l'instant",
+      "addTo": "Ajouter au {{meal}}"
+    },
+    "empty": {
+      "title": "Journée à démarrer"
+    }
+  },
+  "meals": {
+    "BREAKFAST": "Petit-déjeuner",
+    "LUNCH": "Déjeuner",
+    "SNACK": "Collation",
+    "DINNER": "Dîner"
+  },
+  "quantitySheet": {
+    "quantityLabel": "Quantité",
+    "servingsLabel": "Nombre de portions",
+    "portionUnit": "portions",
+    "protein": "P {{value}}",
+    "carbs": "G {{value}}",
+    "fat": "L {{value}}",
+    "favorite": "Ajouter aux favoris",
+    "addedToast": "{{name}} · {{kcal}} kcal ajoutées",
+    "errors": {
+      "invalidQuantity": "Indique une quantité.",
+      "negativeQuantity": "La quantité ne peut pas être négative.",
+      "recipeNotLoaded": "Les ingrédients de cette recette n'ont pas pu être chargés.",
+      "generic": "L'ajout a échoué. Réessaie."
+    },
+    "updatedToast": "{{name}} · {{kcal}} kcal mis à jour",
+    "saveEdit": "Enregistrer"
+  },
+  "addEntry": {
+    "searchPlaceholder": "Rechercher un aliment ou une recette",
+    "filters": {
+      "favorites": "★ Favoris",
+      "foods": "Aliments",
+      "recipes": "Recettes"
+    },
+    "result": {
+      "addLabel": "Ajouter {{name}}"
+    },
+    "empty": {
+      "noResults": "Aucun résultat",
+      "noResultsForQuery": "Aucun résultat pour « {{query}} »",
+      "createFood": "Créer cet aliment"
+    },
+    "header": {
+      "cancel": "Annuler",
+      "create": "Créer",
+      "createHint": "Créer un aliment qui n'est pas encore dans ta bibliothèque",
+      "title": {
+        "BREAKFAST": "Ajouter au petit-déjeuner",
+        "LUNCH": "Ajouter au déjeuner",
+        "SNACK": "Ajouter à la collation",
+        "DINNER": "Ajouter au dîner"
+      }
+    }
   },
   "profile": {
     "resetButton": "Réinitialiser mon profil",
@@ -294,6 +365,38 @@
       "archive": "Archiver",
       "cancel": "Annuler",
       "archiveError": "L'archivage a échoué. Réessaie."
+    }
+  },
+  "journal": {
+    "title": "Journal",
+    "hero": {
+      "goal": "sur {{goal}} kcal"
+    },
+    "status": {
+      "inTarget": "Dans la cible",
+      "over": "Au-dessus"
+    },
+    "meal": {
+      "empty": "Rien pour l'instant",
+      "add": "+ Ajouter"
+    },
+    "activity": {
+      "title": "Activité",
+      "comingSoon": "Le suivi d'activité arrive dans une prochaine version."
+    },
+    "footnote": "Les valeurs enregistrées ne changent pas si tu modifies un aliment plus tard.",
+    "entryActions": {
+      "editQuantity": "Modifier la quantité",
+      "changeMeal": "Changer de repas",
+      "delete": "Supprimer",
+      "cancel": "Annuler",
+      "movedToast": "Entrée déplacée vers {{meal}}",
+      "errors": {
+        "changeMeal": "Le changement de repas a échoué. Réessaie.",
+        "delete": "La suppression a échoué. Réessaie."
+      },
+      "deleteConfirmMessage": "Cette entrée sera retirée de ta journée. Cette action est irréversible.",
+      "deletedToast": "{{name}} retiré"
     }
   }
 }

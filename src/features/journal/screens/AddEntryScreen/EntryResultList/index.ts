@@ -1,0 +1,1 @@
+export { EntryResultList } from './EntryResultList';

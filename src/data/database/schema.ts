@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 5,
+  version: 6,
   tables: [
     tableSchema({
       name: 'user_profiles',
@@ -106,7 +106,14 @@ export const schema = appSchema({
         { name: 'protein', type: 'number' },
         { name: 'carbs', type: 'number' },
         { name: 'fat', type: 'number' },
+        // KCAL-166: freezes the displayed name at write time, independent of the
+        // linked Food/Recipe being later renamed, edited, or deleted (RM16).
+        { name: 'label', type: 'string' },
+        // KCAL-166: same role as on recipe_ingredients (KCAL-163d) -- which
+        // food_portions row this entry was entered via, if any.
+        { name: 'portion_id', type: 'string', isOptional: true, isIndexed: true },
         { name: 'created_at', type: 'number' },
+        { name: 'updated_at', type: 'number' },
       ],
     }),
     tableSchema({
