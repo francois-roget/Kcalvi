@@ -4,11 +4,14 @@ import { ScrollView } from 'react-native';
 
 import { diaryEntryRepository, profileRepository } from '@/data/repositories';
 import { calculateConsumedNutrition } from '@/domain/calculations';
-import type { DiaryEntry } from '@/domain/types';
+import { MEAL_TYPES, type DiaryEntry, type MealType } from '@/domain/types';
 import { DayStrip } from '@/features/journal/components/DayStrip';
+import { MealSection } from '@/features/journal/components/MealSection';
+import { useEntriesByMeal } from '@/hooks/useEntriesByMeal';
 import { useObservable } from '@/hooks/useObservable';
+import type { JournalScreenProps } from '@/navigation/types';
 import Text from '@/ui/Text';
-import { formatMonthYear } from '@/utils/format';
+import { formatMonthYear, toDayKey } from '@/utils/format';
 
 import { JournalHeroCard } from './JournalHeroCard';
 import { useWeekDays } from './JournalScreen.helpers';
@@ -16,7 +19,7 @@ import { Content, Header, Safe, styles } from './JournalScreen.styles';
 
 const EMPTY_ENTRIES: DiaryEntry[] = [];
 
-export function JournalScreen() {
+export function JournalScreen({ navigation }: JournalScreenProps) {
   const { t } = useTranslation();
 
   // Resolved once per mount: the journal day only rolls over at local midnight
@@ -37,6 +40,12 @@ export function JournalScreen() {
   const entries = useObservable(entriesObservable, EMPTY_ENTRIES);
 
   const consumed = useMemo(() => calculateConsumedNutrition(entries), [entries]);
+  // One subscription per day, split in memory (KCAL-185's rule, shared hook since KCAL-189).
+  const entriesByMeal = useEntriesByMeal(entries);
+
+  function openAddEntry(mealType: MealType) {
+    navigation.navigate('AddEntry', { mealType, date: toDayKey(selectedDay) });
+  }
 
   return (
     <Safe edges={['top', 'bottom']}>
@@ -62,6 +71,16 @@ export function JournalScreen() {
               dailyCalorieGoal={profile.dailyCalorieGoal}
             />
           ) : null}
+
+          {MEAL_TYPES.map((mealType) => (
+            <MealSection
+              key={mealType}
+              mealType={mealType}
+              entries={entriesByMeal[mealType]}
+              onAddPress={() => openAddEntry(mealType)}
+              onEntryPress={() => {}}
+            />
+          ))}
         </Content>
       </ScrollView>
     </Safe>

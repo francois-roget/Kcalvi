@@ -373,6 +373,10 @@
     "status": {
       "inTarget": "Dans la cible",
       "over": "Au-dessus"
+    },
+    "meal": {
+      "empty": "Rien pour l'instant",
+      "add": "+ Ajouter"
     }
   }
 }

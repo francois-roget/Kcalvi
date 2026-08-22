@@ -6,6 +6,7 @@ import { diaryEntryRepository, profileRepository } from '@/data/repositories';
 import { calculateConsumedNutrition } from '@/domain/calculations';
 import type { DiaryEntry, MealType } from '@/domain/types';
 import { TodayHeader } from '@/features/today/components/TodayHeader';
+import { useEntriesByMeal } from '@/hooks/useEntriesByMeal';
 import { useObservable } from '@/hooks/useObservable';
 import type { RootTabParamList, TodayScreenProps } from '@/navigation/types';
 import { toDayKey } from '@/utils/format';
@@ -13,7 +14,6 @@ import { toDayKey } from '@/utils/format';
 import { TodayHeroCard } from './TodayHeroCard';
 import { TodayMacros } from './TodayMacros';
 import { TodayMeals } from './TodayMeals';
-import { useEntriesByMeal } from './TodayScreen.helpers';
 import { Content, Safe, styles } from './TodayScreen.styles';
 
 const EMPTY_ENTRIES: DiaryEntry[] = [];

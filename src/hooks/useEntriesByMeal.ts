@@ -9,7 +9,8 @@ import { MEAL_TYPES, type DiaryEntry, type MealType } from '@/domain/types';
  * rather than four `MealCard`-level subscriptions filtered in SQL (KCAL-185): four observed
  * queries would mean four re-render sources for one logical change, and the day's entry count
  * is small enough that grouping it in memory costs nothing. Same split-in-memory reasoning as
- * the library's quick filters (KCAL-104).
+ * the library's quick filters (KCAL-104). Shared by TodayScreen's meal cards and
+ * JournalScreen's meal sections (KCAL-189).
  *
  * Every meal gets a list, including empty ones -- the section renders all four cards
  * regardless (2a shows dinner empty, 2s shows all four empty), and a missing key would hand

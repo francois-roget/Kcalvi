@@ -1,6 +1,6 @@
 import type { DiaryEntry } from '@/domain/types';
 
-import { groupEntriesByMeal } from './TodayScreen.helpers';
+import { groupEntriesByMeal } from './useEntriesByMeal';
 
 function entry(mealType: DiaryEntry['mealType'], label: string): DiaryEntry {
   return { mealType, label } as DiaryEntry;
