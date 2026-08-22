@@ -11,7 +11,14 @@ import {
   convertPortionToReferenceQuantity,
   multiplyNutrition,
 } from '@/domain/calculations';
-import type { Food, FoodPortion, MealType, NutritionValues, Recipe } from '@/domain/types';
+import type {
+  DiaryEntry,
+  Food,
+  FoodPortion,
+  MealType,
+  NutritionValues,
+  Recipe,
+} from '@/domain/types';
 import { assertNonNegative } from '@/domain/validation';
 import { numberToText, parseDayKey, toNumberOrUndefined } from '@/utils/format';
 
@@ -137,6 +144,16 @@ export function useQuantitySheet(
   dayKey: string,
   t: TFunction,
   onSaved: (message: string) => void,
+  /**
+   * Set to edit an existing entry (F14 / KCAL-192) instead of creating one.
+   *
+   * RM16 read backwards: editing DOES recalculate the entry's values from the food or recipe
+   * as it stands NOW. RM16 forbids a later edit of a Food from rewriting history behind the
+   * user's back; it does not freeze an entry the user is deliberately re-entering. So the
+   * recomputation below is correct precisely because the user asked for it -- this is a new
+   * measurement, not a silent rewrite of the old one.
+   */
+  editingEntry?: DiaryEntry,
 ) {
   // Both branch hooks run unconditionally with a null argument on the arm that isn't active --
   // a hook can't be called behind an `if`.
@@ -145,11 +162,21 @@ export function useQuantitySheet(
 
   const portions = useMemo(() => (food ? visiblePortions(food) : []), [food]);
 
-  // A recipe entry starts at one portion; a food entry at its own reference quantity.
+  // Edit mode restores what was logged; otherwise a recipe entry starts at one portion and a
+  // food entry at its own reference quantity.
+  //
+  // `DiaryEntry.quantity` is already in the food's reference unit (KCAL-179 converts at
+  // selection time), so restoring it needs no division back from a portion count -- the field
+  // shows reference units in both modes. `portionId` only restores which quick-portion button
+  // reads as selected.
   const [quantityText, setQuantityText] = useState(
-    numberToText(target.kind === 'food' ? target.food.referenceQuantity : 1),
+    numberToText(
+      editingEntry?.quantity ?? (target.kind === 'food' ? target.food.referenceQuantity : 1),
+    ),
   );
-  const [selectedPortionId, setSelectedPortionId] = useState<string | undefined>(undefined);
+  const [selectedPortionId, setSelectedPortionId] = useState<string | undefined>(
+    editingEntry?.portionId,
+  );
 
   // The portions arrive after the first render (see useFoodWithPortions), so the median
   // preselect has to happen once they do. Guarded by a ref rather than a plain effect so it
@@ -162,13 +189,14 @@ export function useQuantitySheet(
   }, [target]);
 
   useEffect(() => {
-    if (preselectApplied.current || portions.length === 0) return;
+    // Edit mode never preselects: the entry's own quantity is what must show.
+    if (editingEntry || preselectApplied.current || portions.length === 0) return;
     preselectApplied.current = true;
 
     const portion = portions[medianPortionIndex(portions.length)];
     setSelectedPortionId(portion.id);
     setQuantityText(numberToText(convertPortionToReferenceQuantity(portion, 1)));
-  }, [portions]);
+  }, [portions, editingEntry]);
 
   function selectPortion(portion: FoodPortion) {
     setSelectedPortionId(portion.id);
@@ -202,6 +230,14 @@ export function useQuantitySheet(
     if (perPortion) return multiplyNutrition(perPortion, quantity);
     return ZERO_NUTRITION;
   }, [food, perPortion, quantity]);
+
+  // A `portionId` can dangle: the portion may have been deleted from the food since the entry
+  // was written (documented on RecipeIngredient.portionId since KCAL-163d). Resolve it against
+  // the portions actually loaded, so a stale id simply shows no selection instead of
+  // highlighting nothing while claiming a selection exists.
+  const resolvedPortionId = portions.some((portion) => portion.id === selectedPortionId)
+    ? selectedPortionId
+    : undefined;
 
   const [isFavorite, setIsFavorite] = useState(
     target.kind === 'food' ? target.food.isFavorite : target.recipe.isFavorite,
@@ -237,7 +273,7 @@ export function useQuantitySheet(
 
     let source: DiaryEntrySource;
     if (target.kind === 'food') {
-      source = { kind: 'food', foodId: target.food.id, portionId: selectedPortionId };
+      source = { kind: 'food', foodId: target.food.id, portionId: resolvedPortionId };
     } else {
       // Refuse rather than write zeroes: a recipe whose ingredients never resolved would
       // silently record a 0 kcal entry.
@@ -251,8 +287,7 @@ export function useQuantitySheet(
     setSubmitting(true);
     setError(undefined);
 
-    const result = await diaryEntryRepository.create({
-      date: parseDayKey(dayKey),
+    const values = {
       mealType,
       source,
       quantity,
@@ -263,7 +298,13 @@ export function useQuantitySheet(
       carbs: nutrition.carbs,
       fat: nutrition.fat,
       label: name,
-    });
+    };
+
+    // Edit mode deliberately omits `date`: changing a quantity must not move the entry to
+    // another day, and passing it would re-run KCAL-169's normalization for nothing.
+    const result = editingEntry
+      ? await diaryEntryRepository.update(editingEntry.id, values)
+      : await diaryEntryRepository.create({ ...values, date: parseDayKey(dayKey) });
 
     if (!result.ok) {
       setSubmitting(false);
@@ -290,7 +331,7 @@ export function useQuantitySheet(
     food,
     perPortion,
     portions,
-    selectedPortionId,
+    selectedPortionId: resolvedPortionId,
     selectPortion,
     quantityText,
     editQuantity,

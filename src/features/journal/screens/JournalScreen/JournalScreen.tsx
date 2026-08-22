@@ -6,22 +6,25 @@ import { diaryEntryRepository, profileRepository } from '@/data/repositories';
 import { calculateConsumedNutrition } from '@/domain/calculations';
 import { MEAL_TYPES, type DiaryEntry, type MealType } from '@/domain/types';
 import { DayStrip } from '@/features/journal/components/DayStrip';
+import { QuantitySheet } from '@/features/journal/components/QuantitySheet';
 import { MealSection } from '@/features/journal/components/MealSection';
 import { useEntriesByMeal } from '@/hooks/useEntriesByMeal';
 import { useObservable } from '@/hooks/useObservable';
 import type { JournalScreenProps } from '@/navigation/types';
 import Text from '@/ui/Text';
+import { useToast } from '@/ui/Toast';
 import { formatKcal, formatMonthYear, toDayKey } from '@/utils/format';
 
 import { EntryActionsSheet } from './EntryActionsSheet';
 import { JournalHeroCard } from './JournalHeroCard';
-import { useWeekDays } from './JournalScreen.helpers';
+import { useEntryTarget, useWeekDays } from './JournalScreen.helpers';
 import { Container, Content, Header, HeaderRow, Safe, styles } from './JournalScreen.styles';
 
 const EMPTY_ENTRIES: DiaryEntry[] = [];
 
 export function JournalScreen({ navigation }: JournalScreenProps) {
   const { t } = useTranslation();
+  const { showToast } = useToast();
 
   // Resolved once per mount: the journal day only rolls over at local midnight
   // (TECHNICAL_SPECS §8.1), so a fresh Date per render would churn the week and the query.
@@ -47,6 +50,10 @@ export function JournalScreen({ navigation }: JournalScreenProps) {
   // `null` closes the actions sheet (KCAL-191).
   const [entryUnderAction, setEntryUnderAction] = useState<DiaryEntry | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // The entry whose quantity is being edited (F14 / KCAL-192); its Food/Recipe resolves async.
+  const [entryUnderEdit, setEntryUnderEdit] = useState<DiaryEntry | null>(null);
+  const editTarget = useEntryTarget(entryUnderEdit);
 
   function openEntryActions(entry: DiaryEntry) {
     setActionError(null);
@@ -127,10 +134,30 @@ export function JournalScreen({ navigation }: JournalScreenProps) {
         entry={entryUnderAction}
         errorMessage={actionError}
         onClose={closeEntryActions}
-        onEditQuantity={() => {}}
+        onEditQuantity={() => {
+          setEntryUnderEdit(entryUnderAction);
+          closeEntryActions();
+        }}
         onChangeMeal={() => {}}
         onDelete={() => {}}
       />
+
+      {/* Only renders once the source record resolves: an entry outlives the food it was
+          written from (RM16), so editing is unavailable when that lookup misses. */}
+      {entryUnderEdit && editTarget ? (
+        <QuantitySheet
+          visible
+          target={editTarget}
+          entry={entryUnderEdit}
+          mealType={entryUnderEdit.mealType}
+          dayKey={toDayKey(selectedDay)}
+          onClose={() => setEntryUnderEdit(null)}
+          onSaved={(message) => {
+            setEntryUnderEdit(null);
+            showToast(message);
+          }}
+        />
+      ) : null}
     </Safe>
   );
 }

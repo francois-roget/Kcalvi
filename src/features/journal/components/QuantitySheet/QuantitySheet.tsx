@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
-import type { MealType } from '@/domain/types';
+import type { DiaryEntry, MealType } from '@/domain/types';
 import BottomSheet from '@/ui/BottomSheet';
 import Button from '@/ui/Button';
 import Card from '@/ui/Card';
@@ -29,6 +29,8 @@ export type QuantitySheetProps = {
   dayKey: string;
   onClose: () => void;
   onSaved: (message: string) => void;
+  /** Set to edit an existing entry (F14 / KCAL-192) rather than create one. */
+  entry?: DiaryEntry;
 };
 
 /**
@@ -46,6 +48,7 @@ export function QuantitySheet({
   dayKey,
   onClose,
   onSaved,
+  entry,
 }: QuantitySheetProps) {
   const { t } = useTranslation();
   const {
@@ -63,7 +66,7 @@ export function QuantitySheet({
     submitting,
     error,
     submit,
-  } = useQuantitySheet(target, mealType, dayKey, t, onSaved);
+  } = useQuantitySheet(target, mealType, dayKey, t, onSaved, entry);
 
   const isFood = target.kind === 'food';
 
@@ -163,7 +166,7 @@ export function QuantitySheet({
             article, so « Ajouter à la collation » can't be interpolated (KCAL-173). */}
         <Button
           testID="quantitySheet.submit"
-          label={t(`addEntry.header.title.${mealType}`)}
+          label={entry ? t('quantitySheet.saveEdit') : t(`addEntry.header.title.${mealType}`)}
           variant="primary"
           disabled={submitting}
           onPress={submit}

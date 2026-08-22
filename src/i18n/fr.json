@@ -112,7 +112,9 @@
       "negativeQuantity": "La quantité ne peut pas être négative.",
       "recipeNotLoaded": "Les ingrédients de cette recette n'ont pas pu être chargés.",
       "generic": "L'ajout a échoué. Réessaie."
-    }
+    },
+    "updatedToast": "{{name}} · {{kcal}} kcal mis à jour",
+    "saveEdit": "Enregistrer"
   },
   "addEntry": {
     "searchPlaceholder": "Rechercher un aliment ou une recette",
