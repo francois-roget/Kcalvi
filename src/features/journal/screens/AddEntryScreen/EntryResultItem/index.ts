@@ -1,0 +1,1 @@
+export { EntryResultItem } from './EntryResultItem';

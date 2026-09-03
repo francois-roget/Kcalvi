@@ -7,9 +7,9 @@ import type { Food } from '@/domain/types';
 import Card from '@/ui/Card';
 import Text from '@/ui/Text';
 import type { Theme } from '@/ui/theme';
+import { foodKcalLabel } from '@/utils/format';
 
 import { CardActions, CardRow, styles } from './FoodListItem.styles';
-import { foodKcalLabel } from './FoodListItem.helpers';
 
 export type FoodListItemProps = {
   food: Food;

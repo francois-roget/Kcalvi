@@ -1,11 +1,13 @@
-import type { Food, FoodPortion } from '../types';
+import type { DiaryEntry, Food, FoodPortion } from '../types';
 import {
   calculateBMR,
   calculateBurnedCalories,
   calculateConsumedCalories,
+  calculateConsumedNutrition,
   calculateDailyCalorieGoal,
   calculateDailyDeficit,
   calculateNetCalories,
+  calculatePortionNutrition,
   calculateProportionalNutrition,
   calculateRemainingCalories,
   calculateRemainingWeeklyBudget,
@@ -15,6 +17,7 @@ import {
   calculateWeeklyNetConsumption,
   convertPortionToReferenceQuantity,
   getWeekBoundaries,
+  multiplyNutrition,
 } from './index';
 
 const food: Food = {
@@ -78,6 +81,72 @@ describe('convertPortionToReferenceQuantity', () => {
     };
 
     expect(convertPortionToReferenceQuantity(potPortion, 0)).toBe(0);
+  });
+});
+
+describe('multiplyNutrition', () => {
+  const perPortion = { calories: 250, protein: 12.5, carbs: 30, fat: 8.4 };
+
+  it('scales per-portion values by the number of portions consumed', () => {
+    expect(multiplyNutrition(perPortion, 2)).toEqual({
+      calories: 500,
+      protein: 25,
+      carbs: 60,
+      fat: 16.8,
+    });
+  });
+
+  it('handles a fractional factor (half a portion)', () => {
+    expect(multiplyNutrition(perPortion, 0.5)).toEqual({
+      calories: 125,
+      protein: 6.25,
+      carbs: 15,
+      fat: 4.2,
+    });
+  });
+
+  it('returns zeroes at factor 0 rather than the Infinity a 1/factor divisor would give', () => {
+    expect(multiplyNutrition(perPortion, 0)).toEqual({
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+    });
+  });
+
+  it('is the inverse of calculatePortionNutrition', () => {
+    const totals = { calories: 1000, protein: 50, carbs: 120, fat: 33.6 };
+    expect(multiplyNutrition(calculatePortionNutrition(totals, 4), 4)).toEqual(totals);
+  });
+});
+
+describe('calculateConsumedNutrition (KCAL-184)', () => {
+  // Entries carry their own copied values (RM16), so aggregation is a plain sum.
+  const entries = [
+    { calories: 250, protein: 12.5, carbs: 30, fat: 8.4 },
+    { calories: 150, protein: 7.5, carbs: 10, fat: 3.6 },
+  ] as DiaryEntry[];
+
+  it('sums all four values across the day', () => {
+    expect(calculateConsumedNutrition(entries)).toEqual({
+      calories: 400,
+      protein: 20,
+      carbs: 40,
+      fat: 12,
+    });
+  });
+
+  it('returns zeroes for an empty day rather than undefined', () => {
+    expect(calculateConsumedNutrition([])).toEqual({
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+    });
+  });
+
+  it('agrees with calculateConsumedCalories (RM04), which is its calories', () => {
+    expect(calculateConsumedCalories(entries)).toBe(calculateConsumedNutrition(entries).calories);
   });
 });
 

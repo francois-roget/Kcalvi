@@ -25,6 +25,13 @@ module.exports = {
     {
       displayName: 'App',
       preset: 'jest-expo',
+      // Raises React Native Testing Library's own async timeout -- see jest.setup.js. The
+      // preset defines `setupFiles` but no `setupFilesAfterEnv`, so this adds to it rather
+      // than replacing anything.
+      setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+      // Raises React Native Testing Library's own async timeout -- see jest.setup.js. The
+      // preset defines `setupFiles` but no `setupFilesAfterEnv`, so this adds to it rather
+      // than replacing anything.
       // '<rootDir>/.claude/worktrees/' excludes agent worktrees nested under the repo root --
       // without it, a worktree's own node_modules pulls in a second React copy and every
       // component test in this project crashes with "Cannot read properties of null (reading

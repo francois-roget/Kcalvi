@@ -1,4 +1,4 @@
-import { toNumberOrUndefined } from '../RecipeFormScreen.helpers';
+import { toNumberOrUndefined } from '@/utils/format';
 
 type TFunction = (key: string, options?: Record<string, unknown>) => string;
 

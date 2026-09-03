@@ -1,9 +1,6 @@
-import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
-import { database } from '@/data/database';
 import { foodRepository, recipeRepository } from '@/data/repositories';
-import { getRecipesCalories } from '@/data/repositories/getRecipesCalories';
 import type { Food, Recipe, RecipeIngredient, Result } from '@/domain/types';
 import { checkFoodDeletable } from '@/domain/validation';
 import { useObservable } from '@/hooks/useObservable';
@@ -13,10 +10,6 @@ import type { LibraryScreenProps } from '@/navigation/types';
 // which isn't needed here -- these hooks only ever call `t(key, options)` for their own error
 // strings.
 export type TFunction = (key: string, options?: Record<string, unknown>) => string;
-
-// Light debounce (KCAL-103): avoids re-running the observed WatermelonDB
-// query on every keystroke while still feeling instant.
-export const SEARCH_DEBOUNCE_MS = 250;
 
 export type FilterKey = 'all' | 'favorites' | 'foods' | 'recipes';
 
@@ -28,18 +21,6 @@ const EMPTY_USAGES: RecipeIngredient[] = [];
 
 export type FoodInUseError = { code: 'FOOD_IN_USE'; message: string; recipeIds: string[] };
 export type Deletability = Result<void, FoodInUseError> | null;
-
-/** Debounces a fast-changing value (e.g. search input) by `delayMs`. */
-export function useDebouncedValue<T>(value: T, delayMs: number): T {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(timeout);
-  }, [value, delayMs]);
-
-  return debounced;
-}
 
 /**
  * Observes the food/recipe search results for `debouncedQuery` and derives every list-shaped
@@ -135,36 +116,6 @@ export function useLibraryLists(debouncedQuery: string, selectedFilter: FilterKe
     showFoodsSection,
     showGlobalNoResults,
   };
-}
-
-/**
- * KCAL-158 — per-portion kcal for the currently observed recipes, computed in 2 batched
- * queries total via `getRecipesCalories` (not 2 per recipe -- see that function's doc comment
- * for why). Refreshed both when `recipes` changes and on focus: `recipeRepository.search()`'s
- * observable only watches the `recipes` table, not joined foods, so editing a food's calories
- * doesn't re-trigger the effect and the recipe cards would show stale kcal without the
- * focus-triggered refresh covering the real navigation path (edit a food, come back here).
- */
-export function useRecipeCalories(recipes: Recipe[]): Map<string, number> {
-  const [recipeCalories, setRecipeCalories] = useState<Map<string, number>>(new Map());
-
-  const refreshRecipeCalories = useCallback((recipeList: Recipe[]) => {
-    let cancelled = false;
-    getRecipesCalories(database, recipeList).then((calories) => {
-      if (!cancelled) setRecipeCalories(calories);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => refreshRecipeCalories(recipes), [recipes, refreshRecipeCalories]);
-
-  useFocusEffect(
-    useCallback(() => refreshRecipeCalories(recipes), [recipes, refreshRecipeCalories]),
-  );
-
-  return recipeCalories;
 }
 
 /**

@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useRef,
   useState,
   type PropsWithChildren,
@@ -27,6 +28,18 @@ export function ToastProvider({ children }: PropsWithChildren) {
     }
     setMessage(next);
     timeoutRef.current = setTimeout(() => setMessage(null), AUTO_DISMISS_MS);
+  }, []);
+
+  // Clears the pending auto-dismiss on unmount. In the app this never fires -- the provider
+  // sits at the root and lives as long as the process -- but under Jest each test unmounts it,
+  // and a 2.2s timer left running keeps the worker alive past the run ("A worker process has
+  // failed to exit gracefully", seen on CI).
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
   }, []);
 
   return (

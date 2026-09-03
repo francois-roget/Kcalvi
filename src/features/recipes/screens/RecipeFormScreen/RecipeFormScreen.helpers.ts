@@ -13,12 +13,16 @@ import {
 } from '@/domain/calculations';
 import type { DomainError, Food, FoodPortion, RecipeIngredient } from '@/domain/types';
 import { assertNonNegative } from '@/domain/validation';
+import { SEARCH_DEBOUNCE_MS, useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useObservable } from '@/hooks/useObservable';
 import type { RecipeFormScreenProps } from '@/navigation/types';
-import { formatInteger, parseLocaleNumber, unitLabel } from '@/utils/format';
-
-// Light debounce for the ingredient picker's food search (mirrors LibraryScreen's KCAL-103 pattern).
-const SEARCH_DEBOUNCE_MS = 250;
+import {
+  formatInteger,
+  numberToText,
+  parseLocaleNumber,
+  toNumberOrUndefined,
+  unitLabel,
+} from '@/utils/format';
 
 const EMPTY_FOODS: Food[] = [];
 
@@ -60,17 +64,6 @@ const DEFAULT_VALUES: RecipeFormValues = {
   servings: '1',
   isFavorite: false,
 };
-
-/** Converts a domain number to the comma-decimal text NumberField/parseLocaleNumber expect. */
-export function numberToText(value: number): string {
-  return String(value).replace('.', ',');
-}
-
-export function toNumberOrUndefined(text: string): number | undefined {
-  const trimmed = text.trim();
-  if (trimmed === '') return undefined;
-  return parseLocaleNumber(trimmed);
-}
 
 /**
  * Resolves what to display for an ingredient loaded from storage (edit mode), using the
@@ -162,18 +155,6 @@ export function buildQuickPortionPills(
       mode: 'reference' as const,
     };
   });
-}
-
-/** Debounces a fast-changing value (e.g. the ingredient picker's search input). */
-function useDebouncedValue<T>(value: T, delayMs: number): T {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(timeout);
-  }, [value, delayMs]);
-
-  return debounced;
 }
 
 function formatSubmitError(
